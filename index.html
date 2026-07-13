@@ -14,626 +14,720 @@
 <script src="cassettes.js"></script>
 <script src="calc.js"></script>
 <style>
-  :root{
-    --ink:#1b2420;
-    --paper:#f6f4ee;
-    --line:#cfc9ba;
-    --accent:#3d5a40;
-    --accent2:#a8542e;
-    --muted:#6b6457;
-    --panel:#ffffff;
-    --warn:#a8542e;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    font-family:'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
-    background:var(--paper);
-    color:var(--ink);
-  }
-  @font-face{font-family:'IBM Plex Sans';src:local('Helvetica Neue');}
-  header{
-    padding:18px 24px 12px;
-    border-bottom:2px solid var(--ink);
-  }
-  @media(max-width:640px){
-    header{ padding:12px 16px 8px; }
-    header h1{ font-size:16px; }
-    header p{ display:none; }
-  }
-  header h1{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:22px;
-    letter-spacing:0.02em;
-    margin:0 0 4px;
-    text-transform:uppercase;
-  }
-  header p{
-    margin:0;
-    color:var(--muted);
-    font-size:14px;
-    max-width:640px;
-  }
-  .wrap{
-    display:grid;
-    grid-template-columns:340px 1fr;
-    gap:0;
-    min-height:calc(100vh - 100px);
-  }
-  @media (max-width:880px){
-    .wrap{grid-template-columns:1fr;}
-  }
-  .controls{
-    padding:24px;
-    border-right:2px solid var(--ink);
-    background:var(--panel);
-  }
-  @media (max-width:880px){
-    .controls{border-right:none;border-bottom:2px solid var(--ink);}
-  }
-  fieldset{
-    border:none;
-    border-top:1px solid var(--line);
-    padding:16px 0;
-    margin:0;
-  }
-  fieldset:first-of-type{border-top:none;padding-top:0;}
-  legend{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:0.08em;
-    color:var(--accent);
-    padding:0;
-    margin-bottom:10px;
-  }
-  label{
-    display:block;
-    font-size:13px;
-    margin:10px 0 4px;
-    color:var(--ink);
-  }
-  label span.val{
-    font-family:'IBM Plex Mono', monospace;
-    color:var(--accent2);
-    font-weight:600;
-  }
-  input[type=range]{
-    width:100%;
-    accent-color:var(--accent);
-  }
-  select, input[type=number]{
-    width:100%;
-    padding:7px 8px;
-    border:1px solid var(--line);
-    background:#fff;
-    font-size:13px;
-    color:var(--ink);
-    font-family:inherit;
-  }
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  .gear-readout{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12px;
-    color:var(--muted);
-    margin-top:6px;
-    line-height:1.5;
-  }
-  .gear-readout b{color:var(--ink);}
-  main{
-    padding:24px 28px;
-  }
-  .chart-card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    padding:18px;
-    margin-bottom:20px;
-  }
-  .chart-card h2{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:13px;
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-    margin:0 0 12px;
-    color:var(--ink);
-  }
-  canvas{max-height:380px;}
-  .legend-note{
-    display:flex;
-    gap:18px;
-    flex-wrap:wrap;
-    font-size:12px;
-    color:var(--muted);
-    margin-top:10px;
-    border-top:1px solid var(--line);
-    padding-top:10px;
-  }
-  .legend-note span{display:flex;align-items:center;gap:6px;}
-  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
-  .table-card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    padding:18px;
-    overflow-x:auto;
-  }
-  /* Navigation : barre en haut sur desktop, barre fixe en bas sur mobile */
-  .tabs{
-    display:flex;
-    gap:0;
-    border-bottom:2px solid var(--ink);
-    background:var(--paper);
-    padding:0 16px;
-    position:sticky;
-    top:0;
-    z-index:100;
-  }
-  .tab-btn{
-    font-family:'IBM Plex Mono', monospace;
-    text-transform:uppercase;
-    letter-spacing:0.04em;
-    font-size:12px;
-    background:none;
-    border:none;
-    padding:12px 16px;
-    cursor:pointer;
-    color:var(--muted);
-    border-bottom:3px solid transparent;
-    margin-bottom:-2px;
-    white-space:nowrap;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:3px;
-  }
-  .tab-btn .tab-icon{ font-size:18px; }
-  .tab-btn .tab-label{ font-size:10px; }
-  .tab-btn.active{
-    color:var(--ink);
-    border-bottom:3px solid var(--accent2);
-  }
-  .tab-btn:hover{color:var(--ink);}
-  .tab-panel{display:none;}
-  .tab-panel.active{display:block;}
+/* ── Tokens ─────────────────────────────────────────── */
+:root{
+  --ink:#1b2420;
+  --paper:#f6f4ee;
+  --line:#ddd8cc;
+  --accent:#3d5a40;
+  --accent2:#a8542e;
+  --muted:#7a7265;
+  --panel:#ffffff;
+  --radius:6px;
+  --shadow:0 1px 4px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;font-family:'Helvetica Neue',Arial,sans-serif;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.5;}
 
-  /* Sur mobile : barre de nav en bas */
-  @media (max-width: 640px){
-    .tabs{
-      position:fixed;
-      bottom:0; left:0; right:0; top:auto;
-      border-bottom:none;
-      border-top:2px solid var(--ink);
-      padding:0;
-      justify-content:space-around;
-      background:var(--paper);
-      z-index:200;
-    }
-    .tab-btn{
-      flex:1;
-      padding:8px 4px 10px;
-      border-bottom:none;
-      border-top:3px solid transparent;
-      margin-bottom:0;
-      margin-top:-2px;
-      font-size:9px;
-      letter-spacing:0.03em;
-    }
-    .tab-btn .tab-icon{ font-size:20px; }
-    .tab-btn.active{
-      border-bottom:none;
-      border-top:3px solid var(--accent2);
-      color:var(--accent2);
-    }
-    /* Laisser de la place pour la barre de nav en bas */
-    body{ padding-bottom:72px; }
+/* ── Header ─────────────────────────────────────────── */
+header{
+  padding:14px 20px 10px;
+  border-bottom:1px solid var(--line);
+  background:var(--ink);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+header h1{
+  font-size:17px;
+  font-weight:700;
+  margin:0;
+  letter-spacing:.01em;
+}
+header p{margin:0;font-size:12px;opacity:.6;display:none;}
+@media(min-width:640px){
+  header{padding:16px 28px 12px;}
+  header h1{font-size:20px;}
+  header p{display:block;}
+}
+
+/* ── Navigation ─────────────────────────────────────── */
+.tabs{
+  display:flex;
+  background:var(--panel);
+  border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:100;
+}
+.tab-btn{
+  flex:1;
+  border:none;background:none;
+  padding:10px 4px 8px;
+  cursor:pointer;
+  color:var(--muted);
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  border-bottom:3px solid transparent;
+  transition:color .15s;
+  font-size:9px;
+  font-family:inherit;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.tab-btn .tab-icon{font-size:22px;line-height:1;}
+.tab-btn.active{color:var(--accent2);border-bottom-color:var(--accent2);}
+.tab-btn:hover{color:var(--ink);}
+@media(min-width:640px){
+  .tab-btn{font-size:11px;padding:12px 16px 10px;flex:none;}
+  .tab-btn .tab-icon{font-size:18px;}
+}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ── Layout ─────────────────────────────────────────── */
+.page-body{padding:16px;}
+@media(min-width:640px){.page-body{padding:24px 28px;}}
+
+/* ── Sections / Cards ───────────────────────────────── */
+.section{margin-bottom:20px;}
+.section-title{
+  font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);
+  margin:0 0 10px;
+  display:flex;align-items:center;gap:6px;
+}
+.section-title .sticon{font-size:16px;}
+.card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:16px;
+  margin-bottom:12px;
+}
+.card-title{
+  font-size:12px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;
+  color:var(--ink);
+  margin:0 0 12px;
+}
+.hint{font-size:12px;color:var(--muted);margin:4px 0 10px;line-height:1.4;}
+
+/* ── Formulaire ─────────────────────────────────────── */
+label.field-label{
+  display:block;
+  font-size:12px;font-weight:600;
+  color:var(--muted);
+  margin:12px 0 4px;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+label.field-label:first-child{margin-top:0;}
+.val{color:var(--accent2);font-weight:700;}
+input[type=range]{
+  width:100%;accent-color:var(--accent);
+  margin:4px 0;
+}
+select,input[type=number],input[type=text]{
+  width:100%;padding:9px 10px;
+  border:1px solid var(--line);border-radius:4px;
+  background:#fff;font-size:14px;color:var(--ink);font-family:inherit;
+}
+select:focus,input:focus{outline:2px solid var(--accent);border-color:var(--accent);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* ── Boutons preset ─────────────────────────────────── */
+.preset-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.preset-btn{
+  flex:1;min-width:80px;
+  font-size:11px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.03em;
+  background:#fff;border:1px solid var(--line);
+  color:var(--muted);padding:7px 6px;
+  cursor:pointer;border-radius:4px;
+  transition:all .15s;font-family:inherit;
+}
+.preset-btn:hover{border-color:var(--accent);color:var(--accent);}
+.preset-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* ── Readout (valeurs calculées) ────────────────────── */
+.readout{
+  font-size:12px;color:var(--muted);
+  line-height:1.7;margin-top:8px;
+}
+.readout b{color:var(--ink);}
+
+/* ── Boutons ────────────────────────────────────────── */
+.btn{
+  font-size:12px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.04em;
+  padding:8px 14px;border-radius:4px;
+  border:1px solid var(--line);
+  background:#fff;color:var(--ink);
+  cursor:pointer;font-family:inherit;
+  transition:all .15s;display:inline-flex;
+  align-items:center;gap:6px;
+}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-primary:hover{background:#2e4430;border-color:#2e4430;color:#fff;}
+.btn-danger{border-color:var(--accent2);color:var(--accent2);}
+.btn-danger:hover{background:var(--accent2);color:#fff;}
+.btn-link{border:none;background:none;padding:0;font-size:13px;
+  color:var(--accent);text-decoration:underline;cursor:pointer;font-family:inherit;}
+
+/* ── Verdict card (onglet Analyse) ─────────────────── */
+.verdict{
+  border-radius:var(--radius);
+  padding:16px;margin-bottom:16px;
+  border:1px solid var(--line);
+}
+.verdict.good{background:rgba(61,90,64,.07);border-color:var(--accent);}
+.verdict.bad{background:rgba(168,84,46,.07);border-color:var(--accent2);}
+.verdict.neutral{background:var(--panel);}
+.verdict-icon{font-size:28px;margin-bottom:6px;}
+.verdict-title{font-size:16px;font-weight:700;margin:0 0 4px;}
+.verdict-body{font-size:13px;color:var(--muted);line-height:1.5;}
+.verdict-body b{color:var(--ink);}
+.verdict-stats{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:8px;margin-top:12px;
+}
+.stat-box{
+  background:rgba(255,255,255,.6);border:1px solid var(--line);
+  border-radius:4px;padding:10px;text-align:center;
+}
+.stat-val{font-size:22px;font-weight:700;color:var(--accent2);line-height:1;}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.04em;margin-top:2px;}
+
+/* ── Barre cadence ─────────────────────────────────── */
+.cadence-bar{
+  background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 16px;margin-bottom:16px;
+  box-shadow:var(--shadow);
+}
+.cadence-row{display:flex;align-items:center;gap:12px;}
+.cadence-row label{font-size:13px;white-space:nowrap;margin:0;}
+.cadence-row input[type=range]{flex:1;}
+.slope-readout{
+  font-size:13px;color:var(--muted);
+  padding-top:10px;border-top:1px solid var(--line);margin-top:8px;
+}
+.slope-readout .val{font-size:20px;}
+
+/* ── Charts ─────────────────────────────────────────── */
+.chart-card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:16px;margin-bottom:16px;
+}
+.chart-card h2{
+  font-size:12px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em;
+  color:var(--ink);margin:0 0 4px;
+}
+.chart-subtitle{font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.4;}
+.legend-note{
+  display:flex;gap:12px;flex-wrap:wrap;
+  font-size:11px;color:var(--muted);
+  margin-top:10px;padding-top:10px;
+  border-top:1px solid var(--line);
+}
+.legend-note span{display:flex;align-items:center;gap:5px;}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* ── Table ──────────────────────────────────────────── */
+.table-card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:16px;overflow-x:auto;margin-bottom:16px;
+}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);}
+th:first-child,td:first-child{text-align:left;}
+th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+tr.climb-critical td{background:rgba(168,84,46,.08);}
+td.flag{color:var(--accent2);font-weight:700;}
+td.ok{color:var(--accent);}
+
+/* ── Section avancé repliable ───────────────────────── */
+details.advanced summary{
+  font-size:12px;color:var(--accent);
+  cursor:pointer;padding:8px 0;
+  list-style:none;display:flex;
+  align-items:center;gap:6px;
+}
+details.advanced summary::before{content:'▶';font-size:10px;transition:transform .2s;}
+details.advanced[open] summary::before{transform:rotate(90deg);}
+details.advanced summary::-webkit-details-marker{display:none;}
+details.advanced .adv-body{padding-top:8px;border-top:1px solid var(--line);margin-top:4px;}
+
+/* ── Bannières de diagnostic ────────────────────────── */
+.diag-banner{
+  border-radius:var(--radius);padding:12px 14px;
+  font-size:13px;line-height:1.5;margin-bottom:16px;
+  border:1px solid var(--line);
+}
+.diag-banner.good{background:rgba(61,90,64,.07);border-color:var(--accent);}
+.diag-banner.bad{background:rgba(168,84,46,.07);border-color:var(--accent2);}
+.diag-banner.info{background:rgba(61,90,64,.04);border-color:var(--line);}
+
+/* ── GPX upload ─────────────────────────────────────── */
+.gpx-drop{
+  background:var(--panel);border:2px dashed var(--line);
+  border-radius:var(--radius);padding:32px 20px;
+  text-align:center;margin-bottom:16px;
+}
+.gpx-drop-icon{font-size:36px;margin-bottom:8px;}
+.gpx-drop-title{font-size:15px;font-weight:700;margin:0 0 6px;}
+.gpx-drop-hint{font-size:12px;color:var(--muted);margin:0 0 14px;}
+.gpx-steps{
+  display:flex;gap:8px;justify-content:center;
+  flex-wrap:wrap;margin-top:16px;
+}
+.gpx-step{
+  background:var(--paper);border:1px solid var(--line);
+  border-radius:4px;padding:8px 12px;
+  font-size:11px;color:var(--muted);text-align:center;
+  flex:1;min-width:100px;max-width:160px;
+}
+.gpx-step strong{display:block;font-size:16px;margin-bottom:2px;}
+.gpx-summary-card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:14px 16px;
+  font-size:13px;line-height:1.7;margin-bottom:16px;
+}
+
+/* ── Garage ─────────────────────────────────────────── */
+.garage-empty{
+  text-align:center;padding:40px 20px;
+  color:var(--muted);font-size:14px;
+}
+.garage-empty .ge-icon{font-size:48px;margin-bottom:12px;}
+.garage-empty p{margin:0 0 16px;line-height:1.5;}
+.garage-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+}
+@media(min-width:640px){.garage-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));}}
+.bike-card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:14px;position:relative;
+}
+.bike-card.active-bike{border-color:var(--accent);border-width:2px;}
+.bike-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+.bike-card-name{font-size:14px;font-weight:700;margin:0;}
+.bike-badge{
+  font-size:9px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.05em;padding:2px 6px;border-radius:3px;
+  background:var(--accent);color:#fff;white-space:nowrap;flex-shrink:0;
+}
+.bike-card-meta{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px;}
+.cassette-list{margin-bottom:10px;}
+.cassette-list-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px;}
+.cassette-list label{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;cursor:pointer;padding:3px 0;
+}
+.cassette-list input[type=radio]{accent-color:var(--accent2);width:auto;}
+.bike-actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* ── Formulaire ajout vélo ──────────────────────────── */
+.add-bike-panel{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:16px;
+  margin-bottom:16px;display:none;
+}
+.add-bike-panel.open{display:block;}
+.mode-toggle{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-bottom:14px;}
+.mode-toggle button{
+  flex:1;padding:8px;border:none;background:#fff;
+  font-size:12px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.04em;cursor:pointer;color:var(--muted);
+  font-family:inherit;transition:all .15s;
+}
+.mode-toggle button.active{background:var(--accent);color:#fff;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+@media(max-width:480px){.form-row{grid-template-columns:1fr;}}
+.form-actions{display:flex;gap:8px;margin-top:14px;}
+
+/* ── Bike active dans config ────────────────────────── */
+.bike-active-info{
+  background:rgba(61,90,64,.06);border:1px solid var(--accent);
+  border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;
+}
+.bike-active-info h4{font-size:13px;margin:0 0 4px;color:var(--accent);}
+.bike-active-info p{font-size:12px;color:var(--muted);margin:0;line-height:1.6;}
+
+/* ── Config grid desktop ────────────────────────────── */
+@media(min-width:900px){
+  .config-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+}
+
+/* ── Mobile : nav en bas ────────────────────────────── */
+@media(max-width:639px){
+  .tabs{
+    position:fixed;bottom:0;left:0;right:0;top:auto;
+    border-bottom:none;border-top:1px solid var(--line);
+    background:var(--panel);z-index:200;
   }
-  .config-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:0;
-    max-width:980px;
-    margin:0 auto;
-  }
-  .config-grid > fieldset{padding:20px 28px;}
-  @media (max-width:760px){
-    .config-grid{grid-template-columns:1fr;}
-  }
-  .config-card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    margin:24px 28px;
-  }
-  .cadence-bar{
-    background:var(--panel);
-    border:1px solid var(--line);
-    padding:18px 22px;
-    margin:24px 28px 0;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-  }
-  .cadence-bar .cadence-row{display:flex;align-items:center;gap:18px;}
-  .cadence-bar label{margin:0;font-size:13px;white-space:nowrap;}
-  .cadence-bar input[type=range]{flex:1;}
-  .slope-readout{
-    font-size:14px;
-    color:var(--ink);
-    padding-top:10px;
-    border-top:1px solid var(--line);
-  }
-  .analysis-main{padding-bottom:24px;}
-  .preset-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
-  .preset-btn{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:0.03em;
-    background:#fff;
-    border:1px solid var(--line);
-    color:var(--ink);
-    padding:6px 10px;
-    cursor:pointer;
-    border-radius:2px;
-  }
-  .preset-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .preset-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-  .diagnostic-banner{
-    margin:24px 28px 0;
-    padding:14px 18px;
-    border:1px solid var(--line);
-    font-size:14px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-  .diagnostic-banner.good{background:rgba(61,90,64,0.08); border-color:var(--accent);}
-  .diagnostic-banner.bad{background:rgba(168,84,46,0.08); border-color:var(--accent2);}
-  .gpx-upload{
-    margin:24px 28px 0;
-    padding:24px;
-    border:2px dashed var(--line);
-    text-align:center;
-    background:var(--panel);
-  }
-  .gpx-upload input[type=file]{font-size:13px;}
-  .gpx-summary{
-    margin:20px 28px 0;
-    padding:16px 18px;
-    border:1px solid var(--line);
-    background:var(--panel);
-    font-size:13px;
-    line-height:1.7;
-  }
-  tr.climb-critical td{background:rgba(168,84,46,0.10);}
-  tr.climb-critical td:first-child{font-weight:600;}
-  .garage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:24px 28px;}
-  .bike-card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    padding:16px;
-  }
-  .bike-card.active-bike{border:2px solid var(--accent2);}
-  .bike-card h3{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:13px;
-    text-transform:uppercase;
-    letter-spacing:0.04em;
-    margin:0 0 8px;
-    color:var(--ink);
-  }
-  .bike-card .bike-meta{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px;}
-  .bike-card .cassette-list{font-size:12px;margin:8px 0;}
-  .bike-card .cassette-list label{display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0;}
-  .bike-card .cassette-list input[type=radio]{accent-color:var(--accent2);}
-  .bike-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
-  .btn-sm{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:0.03em;
-    padding:5px 10px;
-    border:1px solid var(--line);
-    background:#fff;
-    color:var(--ink);
-    cursor:pointer;
-  }
-  .btn-sm:hover{border-color:var(--accent);color:var(--accent);}
-  .btn-sm.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
-  .btn-sm.danger{border-color:var(--accent2);color:var(--accent2);}
-  .garage-toolbar{padding:20px 28px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-  .add-bike-form{
-    background:var(--panel);
-    border:1px solid var(--line);
-    padding:18px;
-    margin:0 28px;
-    display:none;
-  }
-  .add-bike-form.open{display:block;}
-  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-  @media(max-width:640px){.form-row{grid-template-columns:1fr;}}
-  table{
-    width:100%;
-    border-collapse:collapse;
-    font-size:13px;
-  }
-  th, td{
-    padding:6px 10px;
-    text-align:right;
-    border-bottom:1px solid var(--line);
-    font-family:'IBM Plex Mono', monospace;
-  }
-  th:first-child, td:first-child{text-align:left;font-family:inherit;}
-  th{
-    color:var(--muted);
-    font-weight:500;
-    text-transform:uppercase;
-    font-size:11px;
-    letter-spacing:0.04em;
-  }
-  .flag{color:var(--warn);font-weight:700;}
-  .ok{color:var(--accent);}
+  body{padding-bottom:68px;}
+  header p{display:none;}
+}
+
+/* ── Version build ──────────────────────────────────── */
+.build-version{
+  text-align:center;padding:16px;
+  font-size:10px;color:var(--line);
+  font-family:monospace;letter-spacing:.05em;
+}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Braquets &amp; pentes</h1>
-  <p>Prototype de calcul : vitesse mécanique par braquet vs. vitesse soutenable selon la pente, le poids et la puissance. Repère où la cadence requise sort de la plage humaine.</p>
+  <span style="font-size:24px;">🚲</span>
+  <div>
+    <h1>Braquets &amp; pentes</h1>
+    <p>Vérifiez que votre montage convient à votre sortie et à votre profil</p>
+  </div>
 </header>
 
+<!-- ── Navigation ── -->
 <div class="tabs">
   <button class="tab-btn active" data-tab="config">
-    <span class="tab-icon">⚙️</span>
-    <span class="tab-label">Config</span>
+    <span class="tab-icon">⚙️</span>Config
   </button>
   <button class="tab-btn" data-tab="analyse">
-    <span class="tab-icon">📊</span>
-    <span class="tab-label">Analyse</span>
+    <span class="tab-icon">📊</span>Analyse
   </button>
   <button class="tab-btn" data-tab="gpx">
-    <span class="tab-icon">🗺️</span>
-    <span class="tab-label">Parcours</span>
+    <span class="tab-icon">🗺️</span>Parcours
   </button>
   <button class="tab-btn" data-tab="garage">
-    <span class="tab-icon">🚲</span>
-    <span class="tab-label">Garage</span>
+    <span class="tab-icon">🚲</span>Garage
   </button>
 </div>
 
-<!-- ONGLET 1 : CONFIGURATION VÉLO / CYCLISTE -->
+<!-- ══════════════════════════════════════════════════════
+     ONGLET 1 — CONFIGURATION
+══════════════════════════════════════════════════════ -->
 <div class="tab-panel active" id="tab-config">
-  <div class="config-card">
-    <div class="config-grid">
+<div class="page-body">
+<div class="config-grid">
 
-      <fieldset>
-        <legend>Cycliste</legend>
+  <!-- Colonne 1 : Profil + Objectif -->
+  <div>
+
+    <div class="section">
+      <p class="section-title"><span class="sticon">🏃</span> Profil cycliste</p>
+
+      <div class="card">
         <div class="row2">
           <div>
-            <label>Poids corps (kg) <span class="val" id="vWeight">70</span></label>
+            <label class="field-label">Poids corps — <span class="val" id="vWeight">70</span> kg</label>
             <input type="range" id="weight" min="45" max="120" value="70" step="1">
           </div>
           <div>
-            <label>Poids vélo (kg) <span class="val" id="vBikeW">9</span></label>
+            <label class="field-label">Poids vélo — <span class="val" id="vBikeW">9</span> kg</label>
             <input type="range" id="bikeWeight" min="6" max="16" value="9" step="0.5">
           </div>
         </div>
-        <label>FTP (W) <span class="val" id="vFtp">220</span></label>
+
+        <label class="field-label">FTP — <span class="val" id="vFtp">220</span> W</label>
         <input type="range" id="ftp" min="100" max="450" value="220" step="5">
-        <label>% FTP soutenable <span class="val" id="vPct">85</span>%</label>
+        <p class="hint">Votre puissance maximale soutenable sur 1 heure. Si vous ne connaissez pas votre FTP, 2–2.5 W/kg est une bonne base de départ.</p>
+
+        <label class="field-label">Puissance soutenable — <span class="val" id="vPct">85</span>% de la FTP</label>
         <input type="range" id="pct" min="70" max="120" value="85" step="1">
         <div class="preset-row">
-          <button type="button" class="preset-btn" data-pct="105">Sprint (&lt;5min)</button>
-          <button type="button" class="preset-btn" data-pct="95">Seuil (5-20min)</button>
-          <button type="button" class="preset-btn" data-pct="85">Long (&gt;20min)</button>
+          <button type="button" class="preset-btn" data-pct="105">⚡ Sprint &lt;5min</button>
+          <button type="button" class="preset-btn" data-pct="95">🔥 Seuil 5–20min</button>
+          <button type="button" class="preset-btn active" data-pct="85">🏔 Long &gt;20min</button>
         </div>
-      </fieldset>
+      </div>
+    </div>
 
-      <fieldset>
-        <legend>Groupe / braquets</legend>
+    <div class="section">
+      <p class="section-title"><span class="sticon">🎯</span> Objectif terrain</p>
 
-        <!-- Affiché si un vélo du garage est actif -->
-        <div id="bikeActiveBlock" style="display:none;">
-          <div id="activeBikeBanner" style="padding:10px 12px;background:rgba(61,90,64,0.07);border-left:3px solid var(--accent);font-size:13px;line-height:1.8;"></div>
-          <div class="gear-readout" id="gearReadout" style="margin-top:8px;"></div>
-          <button type="button" class="btn-sm" id="btnGoGarage" style="margin-top:10px;">
-            Changer de vélo ou de cassette →
-          </button>
-          <label style="margin-top:14px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-            <input type="checkbox" id="compareToggle" style="width:auto;">
+      <div class="card">
+        <label class="field-label">Pente maximale envisagée — <span class="val" id="vSlope">12</span>%</label>
+        <input type="range" id="maxSlope" min="2" max="25" value="12" step="1">
+        <p class="hint">Renseignez la pente max du parcours que vous préparez. Cela dimensionne les graphiques et le diagnostic.</p>
+
+        <label class="field-label" style="margin-top:12px;">Type de revêtement</label>
+        <select id="terrain">
+          <option value="0.0045">🛣 Route lisse</option>
+          <option value="0.006" selected>🚗 Route moyenne</option>
+          <option value="0.012">🪨 Gravel / chemin</option>
+        </select>
+
+        <label class="field-label" style="margin-top:12px;">Nom de la sortie (optionnel)</label>
+        <input type="text" id="rideName" placeholder="ex: Cyclo des Trois Cols">
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Colonne 2 : Vélo + Aéro -->
+  <div>
+
+    <div class="section">
+      <p class="section-title"><span class="sticon">🔧</span> Votre vélo</p>
+
+      <!-- Si vélo actif dans le garage -->
+      <div id="bikeActiveBlock" style="display:none;">
+        <div class="bike-active-info">
+          <h4 id="activeBikeBanner">—</h4>
+          <p id="gearReadout"></p>
+        </div>
+        <button type="button" class="btn" id="btnGoGarage">🔄 Changer de vélo ou cassette</button>
+
+        <div style="margin-top:14px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+            <input type="checkbox" id="compareToggle" style="width:auto;accent-color:var(--accent);">
             Comparer avec un autre groupe
           </label>
           <div id="compareBlock" style="display:none;margin-top:8px;">
-            <select id="groupsetB"></select>
-            <div class="gear-readout" id="gearReadoutB"></div>
+            <select id="groupsetB" style="width:100%;"></select>
+            <div class="readout" id="gearReadoutB"></div>
           </div>
         </div>
+      </div>
 
-        <!-- Affiché si aucun vélo actif -->
-        <div id="bikeNoneBlock">
-          <div style="padding:12px;background:rgba(168,84,46,0.06);border-left:3px solid var(--accent2);font-size:13px;margin-bottom:12px;line-height:1.6;">
-            Aucun vélo sélectionné dans le garage.<br>
-            <button type="button" class="btn-sm" id="btnGoGarage2" style="margin-top:8px;">Aller au garage →</button>
-          </div>
-          <label>Groupe (sélection temporaire)</label>
+      <!-- Si aucun vélo actif -->
+      <div id="bikeNoneBlock">
+        <div class="diag-banner info">
+          💡 Ajoutez un vélo dans le <strong>Garage</strong> pour sélectionner votre montage automatiquement.
+          <br><button type="button" class="btn-link" id="btnGoGarage2">Aller au garage →</button>
+        </div>
+        <div class="card">
+          <label class="field-label">Groupe (sélection temporaire)</label>
           <select id="groupset"></select>
-          <div id="customGears" style="display:none;margin-top:10px;">
+          <div id="customGears" style="display:none;margin-top:12px;">
             <div class="row2">
-              <div><label>Plateau petit</label><input type="number" id="cSmallRing" value="34"></div>
-              <div><label>Plateau grand</label><input type="number" id="cBigRing" value="50"></div>
+              <div>
+                <label class="field-label">Plateau petit</label>
+                <input type="number" id="cSmallRing" value="34">
+              </div>
+              <div>
+                <label class="field-label">Plateau grand</label>
+                <input type="number" id="cBigRing" value="50">
+              </div>
             </div>
-            <label style="margin-top:8px;">Pignons de cassette (séparés par des virgules)</label>
+            <label class="field-label">Pignons de cassette (séparés par des virgules)</label>
             <input type="text" id="cCassetteTeeth" value="11,12,13,14,16,18,20,22,25,28,30">
           </div>
-          <div class="gear-readout" id="gearReadout" style="margin-top:8px;"></div>
-          <label style="margin-top:14px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-            <input type="checkbox" id="compareToggle" style="width:auto;">
-            Comparer avec un autre groupe
-          </label>
-          <div id="compareBlock" style="display:none;margin-top:8px;">
-            <select id="groupsetB"></select>
-            <div class="gear-readout" id="gearReadoutB"></div>
+          <div class="readout" id="gearReadout" style="margin-top:8px;"></div>
+          <div style="margin-top:14px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+              <input type="checkbox" id="compareToggle" style="width:auto;accent-color:var(--accent);">
+              Comparer avec un autre groupe
+            </label>
+            <div id="compareBlock" style="display:none;margin-top:8px;">
+              <select id="groupsetB" style="width:100%;"></select>
+              <div class="readout" id="gearReadoutB"></div>
+            </div>
           </div>
         </div>
-
-      </fieldset>
-
-      <fieldset>
-        <legend>Sortie / objectif</legend>
-        <label>Nom de la sortie (optionnel)</label>
-        <input type="text" id="rideName" placeholder="ex: Cyclo des Trois Cols">
-        <label style="margin-top:10px;">Pente maximale envisagée (%) <span class="val" id="vSlope">12</span></label>
-        <input type="range" id="maxSlope" min="2" max="25" value="12" step="1">
-        <label>Type de terrain (ajuste résistance roulement)</label>
-        <select id="terrain">
-          <option value="0.0045">Route lisse</option>
-          <option value="0.006" selected>Route moyenne</option>
-          <option value="0.012">Gravel / chemin</option>
-        </select>
-      </fieldset>
-
-      <fieldset>
-        <legend>Aérodynamique (avancé)</legend>
-        <label>Position</label>
-        <select id="posture">
-          <option value="hoods" selected>Mains sur poignées de frein</option>
-          <option value="drops">Mains en bas de cintre</option>
-          <option value="aero">Prolongateurs / position aéro</option>
-        </select>
-        <label>Tenue</label>
-        <select id="kit">
-          <option value="casual">Vêtements ville, coupe ample</option>
-          <option value="jersey" selected>Tenue cycliste classique</option>
-          <option value="skinsuit">Combinaison aéro</option>
-        </select>
-        <div class="gear-readout" id="cdaReadout" style="margin-top:8px;"></div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Résumé</legend>
-        <div class="gear-readout" id="configSummary" style="font-size:13px;line-height:1.7;"></div>
-      </fieldset>
-
+      </div>
     </div>
+
+    <div class="section">
+      <details class="advanced">
+        <summary>Paramètres aérodynamiques</summary>
+        <div class="adv-body">
+          <div class="card" style="margin-top:10px;">
+            <label class="field-label">Position</label>
+            <select id="posture">
+              <option value="hoods" selected>🤲 Mains sur les poignées de frein</option>
+              <option value="drops">✊ Mains en bas de cintre</option>
+              <option value="aero">💨 Prolongateurs / position aéro</option>
+            </select>
+            <label class="field-label" style="margin-top:12px;">Tenue</label>
+            <select id="kit">
+              <option value="casual">👕 Vêtements ville (coupe ample)</option>
+              <option value="jersey" selected>🚴 Tenue cycliste classique</option>
+              <option value="skinsuit">⚡ Combinaison aéro</option>
+            </select>
+            <div class="readout" id="cdaReadout" style="margin-top:8px;"></div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="section">
+      <p class="section-title"><span class="sticon">📋</span> Résumé de configuration</p>
+      <div class="card">
+        <div class="readout" id="configSummary" style="line-height:1.9;"></div>
+      </div>
+    </div>
+
   </div>
 </div>
+</div>
+</div>
 
-<!-- ONGLET 2 : ANALYSE -->
+<!-- ══════════════════════════════════════════════════════
+     ONGLET 2 — ANALYSE
+══════════════════════════════════════════════════════ -->
 <div class="tab-panel" id="tab-analyse">
+<div class="page-body">
 
+  <!-- Barre cadence + verdict immédiat -->
   <div class="cadence-bar">
     <div class="cadence-row">
-      <label>Cadence cible <span class="val" id="vCad">75</span> rpm</label>
+      <label style="font-weight:600;">Cadence cible — <span class="val" id="vCad">75</span> rpm</label>
       <input type="range" id="cadence" min="40" max="110" value="75" step="1">
     </div>
-    <span class="slope-readout">Pente max tenable (braquet facile) : <span class="val" id="vSlopeMax">—</span>%</span>
+    <div class="slope-readout">
+      Pente max tenable avec le braquet le plus facile : <span class="val" id="vSlopeMax">—</span>%
+    </div>
   </div>
 
-  <div class="diagnostic-banner" id="diagnosticBanner"></div>
+  <!-- Diagnostic / verdict -->
+  <div class="diag-banner" id="diagnosticBanner"></div>
 
-  <main class="analysis-main">
-    <div class="chart-card">
-      <h2>Cadence requise pour tenir la vitesse soutenable, par braquet</h2>
-      <canvas id="cadenceChart"></canvas>
-      <div class="legend-note">
-        <span><i class="dot" style="background:#3d5a40"></i> Braquet le plus facile</span>
-        <span><i class="dot" style="background:#7a9b7e"></i> Braquet le plus dur</span>
-        <span><i class="dot" style="background:#cfe8d2"></i> Zone entre les deux braquets</span>
-        <span><i class="dot" style="background:#f3d6c6"></i> Hors 40–110 rpm = inadapté</span>
-      </div>
+  <!-- Graphique 1 : cadence requise -->
+  <div class="chart-card">
+    <h2>Cadence requise par braquet selon la pente</h2>
+    <p class="chart-subtitle">La zone verte indique les combinaisons pente × braquet où la cadence reste entre 40 et 110 rpm — votre plage d'utilisation réaliste.</p>
+    <canvas id="cadenceChart"></canvas>
+    <div class="legend-note">
+      <span><i class="dot" style="background:#3d5a40;"></i> Braquet facile</span>
+      <span><i class="dot" style="background:#7a9b7e;"></i> Braquet dur</span>
+      <span><i class="dot" style="background:rgba(61,90,64,.25);"></i> Zone utilisable</span>
     </div>
+  </div>
 
-    <div class="chart-card">
-      <h2>Pente maximale soutenable selon le braquet, à cadence cible (hors combinaisons croisées)</h2>
-      <canvas id="slopeByGearChart"></canvas>
-      <div class="legend-note">
-        <span><i class="dot" style="background:#3d5a40"></i> Pente max tenable (à cadence cible)</span>
-        <span><i class="dot" style="background:#a8542e"></i> Braquet le plus facile / le plus dur (repères)</span>
-      </div>
+  <!-- Graphique 2 : pente max par braquet -->
+  <div class="chart-card">
+    <h2>Pente maximale tenable par braquet, à cadence cible</h2>
+    <p class="chart-subtitle">Pour chaque combinaison plateau × pignon (hors croisements), pente max que vous pouvez tenir avec votre puissance soutenable.</p>
+    <canvas id="slopeByGearChart"></canvas>
+    <div class="legend-note">
+      <span><i class="dot" style="background:#3d5a40;"></i> Pente max tenable</span>
+      <span><i class="dot" style="background:#a8542e;"></i> Braquets extrêmes</span>
     </div>
+  </div>
 
-    <div class="table-card">
-      <h2 style="font-family:'IBM Plex Mono',monospace;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 12px;">Lecture par paliers de pente</h2>
-      <table id="dataTable">
-        <thead>
-          <tr><th>Pente</th><th>V. soutenable</th><th>Cadence (facile)</th><th>Cadence (dur)</th><th>Diagnostic</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </main>
+  <!-- Tableau récapitulatif -->
+  <div class="table-card">
+    <p class="card-title">Détail par paliers de pente</p>
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>Pente</th>
+          <th>V. soutenable</th>
+          <th>Cadence (facile)</th>
+          <th>Cadence (dur)</th>
+          <th>Diagnostic</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+</div>
 </div>
 
-<!-- ONGLET 3 : PARCOURS GPX -->
+<!-- ══════════════════════════════════════════════════════
+     ONGLET 3 — PARCOURS GPX
+══════════════════════════════════════════════════════ -->
 <div class="tab-panel" id="tab-gpx">
-  <div class="gpx-upload">
-    <label for="gpxFile" style="font-size:14px;display:block;margin-bottom:10px;">
-      Importer le tracé GPX de la sortie à vérifier
-    </label>
+<div class="page-body">
+
+  <div class="gpx-drop">
+    <div class="gpx-drop-icon">🗺️</div>
+    <p class="gpx-drop-title">Importer un parcours GPX</p>
+    <p class="gpx-drop-hint">Le fichier est analysé localement — aucune donnée n'est envoyée sur un serveur.</p>
     <input type="file" id="gpxFile" accept=".gpx">
-    <div style="margin-top:10px;font-size:12px;color:var(--muted);">
-      Analyse faite localement dans le navigateur — le fichier n'est pas envoyé sur un serveur.
+    <div class="gpx-steps">
+      <div class="gpx-step"><strong>1️⃣</strong>Importez votre GPX</div>
+      <div class="gpx-step"><strong>2️⃣</strong>Les montées sont détectées automatiquement</div>
+      <div class="gpx-step"><strong>3️⃣</strong>Chaque montée est diagnostiquée avec votre profil</div>
     </div>
   </div>
 
   <div id="gpxResults" style="display:none;">
-    <div class="gpx-summary" id="gpxSummary"></div>
+    <div class="gpx-summary-card" id="gpxSummary"></div>
 
-    <div class="chart-card" style="margin:20px 28px 0;">
-      <h2>Profil altimétrique — montées détectées en surbrillance</h2>
+    <div class="chart-card">
+      <h2>Profil altimétrique</h2>
+      <p class="chart-subtitle">🟢 Montées couvertes par votre braquet · 🟠 Montées potentiellement difficiles</p>
       <canvas id="elevationChart"></canvas>
     </div>
 
-    <div class="table-card" style="margin:20px 28px 0;">
-      <h2 style="font-family:'IBM Plex Mono',monospace;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 12px;">Montées détectées</h2>
+    <div class="table-card">
+      <p class="card-title">Montées détectées</p>
       <table id="climbsTable">
         <thead>
-          <tr><th>Km départ</th><th>Longueur</th><th>D+</th><th>Pente moy.</th><th>Pente max</th><th>Durée est.</th><th>Effort</th><th>Diagnostic</th></tr>
+          <tr>
+            <th>Km</th>
+            <th>Longueur</th>
+            <th>D+</th>
+            <th>Moy.</th>
+            <th>Max</th>
+            <th>Durée</th>
+            <th>Effort</th>
+            <th>Diagnostic</th>
+          </tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
   </div>
 
-  <div id="gpxEmpty" class="gpx-summary" style="margin-top:20px;">
-    Aucun fichier importé pour le moment. Les réglages de l'onglet Configuration (poids, FTP, groupe, cadence cible définie sur l'onglet Analyse) seront utilisés pour l'analyse.
-  </div>
+  <div id="gpxEmpty" style="display:none;"></div>
+
+</div>
 </div>
 
-<!-- ONGLET 4 : GARAGE -->
+<!-- ══════════════════════════════════════════════════════
+     ONGLET 4 — GARAGE
+══════════════════════════════════════════════════════ -->
 <div class="tab-panel" id="tab-garage">
+<div class="page-body">
 
-  <div class="garage-toolbar">
-    <button class="btn-sm primary" id="btnAddBike">+ Ajouter un vélo</button>
-    <span style="font-size:12px;color:var(--muted);">Le vélo actif charge automatiquement son groupe dans l'onglet Configuration.</span>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+    <button class="btn btn-primary" id="btnAddBike">+ Ajouter un vélo</button>
+    <span style="font-size:12px;color:var(--muted);">Sélectionnez un vélo pour charger son groupe dans l'onglet Config.</span>
   </div>
 
-  <div class="add-bike-form" id="addBikeForm">
+  <!-- Formulaire ajout -->
+  <div class="add-bike-panel" id="addBikeForm">
 
-    <!-- Sélecteur de mode -->
-    <div style="display:flex;gap:0;margin-bottom:16px;border:1px solid var(--line);">
-      <button class="btn-sm" id="modeKnown" style="flex:1;border:none;background:var(--accent);color:#fff;">Catalogue</button>
-      <button class="btn-sm" id="modeCustom" style="flex:1;border:none;">Vélo personnalisé</button>
+    <p class="card-title">Ajouter un vélo</p>
+
+    <div class="mode-toggle">
+      <button id="modeKnown" class="active">📚 Catalogue</button>
+      <button id="modeCustom">✏️ Personnalisé</button>
     </div>
 
     <!-- Mode catalogue -->
     <div id="blockKnown">
       <div class="form-row">
         <div>
-          <label>Marque</label>
-          <select id="newBrand" style="width:100%;"></select>
+          <label class="field-label">Marque</label>
+          <select id="newBrand"></select>
         </div>
         <div>
-          <label>Modèle</label>
-          <select id="newModel" style="width:100%;"></select>
+          <label class="field-label">Modèle</label>
+          <select id="newModel"></select>
         </div>
       </div>
       <div class="form-row">
         <div>
-          <label>Millésime</label>
-          <select id="newYear" style="width:100%;"></select>
+          <label class="field-label">Millésime</label>
+          <select id="newYear"></select>
         </div>
         <div>
-          <label>Finition</label>
-          <select id="newFinish" style="width:100%;"></select>
+          <label class="field-label">Finition / niveau</label>
+          <select id="newFinish"></select>
         </div>
       </div>
     </div>
@@ -642,47 +736,48 @@
     <div id="blockCustom" style="display:none;">
       <div class="form-row">
         <div>
-          <label>Marque (libre)</label>
-          <input type="text" id="customBrand" placeholder="ex: Colnago" style="width:100%;">
+          <label class="field-label">Marque</label>
+          <input type="text" id="customBrand" placeholder="ex: Colnago">
         </div>
         <div>
-          <label>Modèle (libre)</label>
-          <input type="text" id="customModel" placeholder="ex: C68" style="width:100%;">
+          <label class="field-label">Modèle</label>
+          <input type="text" id="customModel" placeholder="ex: C68">
         </div>
       </div>
       <div class="form-row">
         <div>
-          <label>Millésime</label>
-          <input type="number" id="customYear" value="2024" min="2000" max="2030" style="width:100%;">
+          <label class="field-label">Millésime</label>
+          <input type="number" id="customYear" value="2024" min="2000" max="2030">
         </div>
         <div>
-          <label>Poids vélo (kg)</label>
-          <input type="number" id="customWeight" value="8.5" min="4" max="20" step="0.1" style="width:100%;">
+          <label class="field-label">Poids vélo (kg)</label>
+          <input type="number" id="customWeight" value="8.5" min="4" max="20" step="0.1">
         </div>
       </div>
-      <label>Groupe</label>
-      <select id="customGroupset" style="width:100%;margin-bottom:10px;"></select>
-      <div id="customGroupsetReadout" class="gear-readout"></div>
+      <label class="field-label">Groupe</label>
+      <select id="customGroupset" style="width:100%;margin-bottom:8px;"></select>
+      <div class="readout" id="customGroupsetReadout"></div>
     </div>
 
     <!-- Champs communs -->
-    <div style="margin:12px 0 10px;">
-      <label>Nom personnalisé (optionnel)</label>
-      <input type="text" id="newBikeName" placeholder="ex: Mon gravel bleu" style="width:100%;">
+    <div style="margin-top:12px;">
+      <label class="field-label">Nom personnalisé (optionnel)</label>
+      <input type="text" id="newBikeName" placeholder="ex: Mon gravel bleu">
     </div>
-    <div id="newBikePreview" class="gear-readout" style="margin-bottom:12px;"></div>
-    <div style="display:flex;gap:10px;">
-      <button class="btn-sm primary" id="btnConfirmBike">Ajouter ce vélo</button>
-      <button class="btn-sm" id="btnCancelBike">Annuler</button>
+    <div class="readout" id="newBikePreview" style="margin:10px 0;"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="btnConfirmBike">✓ Ajouter</button>
+      <button class="btn" id="btnCancelBike">Annuler</button>
     </div>
   </div>
 
-  <div class="garage-grid" id="garageGrid">
-    <div style="padding:20px;color:var(--muted);font-size:13px;">
-      Aucun vélo dans le garage. Ajoutez-en un avec le bouton ci-dessus.
-    </div>
-  </div>
+  <!-- Grille des vélos -->
+  <div class="garage-grid" id="garageGrid"></div>
+
 </div>
+</div>
+
+<div class="build-version">v20260713-1159</div>
 
 <script src="gpx.js"></script>
 <script src="bikes.js"></script>
