@@ -1,4 +1,4 @@
-const CACHE_NAME = 'braquets-v9';
+const CACHE_NAME = 'braquets-v10';
 const STATIC_ASSETS = [
   './manifest.json',
   './icon-192.png',

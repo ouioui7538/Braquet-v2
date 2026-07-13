@@ -369,25 +369,51 @@
 
       <fieldset>
         <legend>Groupe / braquets</legend>
-        <div id="activeBikeBanner" style="display:none;margin-bottom:10px;padding:8px 10px;background:rgba(61,90,64,0.07);border-left:3px solid var(--accent);font-size:12px;line-height:1.6;"></div>
-        <select id="groupset"></select>
-        <div id="customGears" style="display:none;margin-top:10px;">
-          <div class="row2">
-            <div><label>Plateau petit</label><input type="number" id="cSmallRing" value="34"></div>
-            <div><label>Plateau grand</label><input type="number" id="cBigRing" value="50"></div>
+
+        <!-- Affiché si un vélo du garage est actif -->
+        <div id="bikeActiveBlock" style="display:none;">
+          <div id="activeBikeBanner" style="padding:10px 12px;background:rgba(61,90,64,0.07);border-left:3px solid var(--accent);font-size:13px;line-height:1.8;"></div>
+          <div class="gear-readout" id="gearReadout" style="margin-top:8px;"></div>
+          <button type="button" class="btn-sm" id="btnGoGarage" style="margin-top:10px;">
+            Changer de vélo ou de cassette →
+          </button>
+          <label style="margin-top:14px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="compareToggle" style="width:auto;">
+            Comparer avec un autre groupe
+          </label>
+          <div id="compareBlock" style="display:none;margin-top:8px;">
+            <select id="groupsetB"></select>
+            <div class="gear-readout" id="gearReadoutB"></div>
           </div>
-          <label style="margin-top:8px;">Pignons de cassette (séparés par des virgules, croissant)</label>
-          <input type="text" id="cCassetteTeeth" value="11,12,13,14,16,18,20,22,25,28,30">
         </div>
-        <div class="gear-readout" id="gearReadout"></div>
-        <label style="margin-top:12px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-          <input type="checkbox" id="compareToggle" style="width:auto;">
-          Comparer avec un second groupe
-        </label>
-        <div id="compareBlock" style="display:none;margin-top:8px;">
-          <select id="groupsetB"></select>
-          <div class="gear-readout" id="gearReadoutB"></div>
+
+        <!-- Affiché si aucun vélo actif -->
+        <div id="bikeNoneBlock">
+          <div style="padding:12px;background:rgba(168,84,46,0.06);border-left:3px solid var(--accent2);font-size:13px;margin-bottom:12px;line-height:1.6;">
+            Aucun vélo sélectionné dans le garage.<br>
+            <button type="button" class="btn-sm" id="btnGoGarage2" style="margin-top:8px;">Aller au garage →</button>
+          </div>
+          <label>Groupe (sélection temporaire)</label>
+          <select id="groupset"></select>
+          <div id="customGears" style="display:none;margin-top:10px;">
+            <div class="row2">
+              <div><label>Plateau petit</label><input type="number" id="cSmallRing" value="34"></div>
+              <div><label>Plateau grand</label><input type="number" id="cBigRing" value="50"></div>
+            </div>
+            <label style="margin-top:8px;">Pignons de cassette (séparés par des virgules)</label>
+            <input type="text" id="cCassetteTeeth" value="11,12,13,14,16,18,20,22,25,28,30">
+          </div>
+          <div class="gear-readout" id="gearReadout" style="margin-top:8px;"></div>
+          <label style="margin-top:14px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="compareToggle" style="width:auto;">
+            Comparer avec un autre groupe
+          </label>
+          <div id="compareBlock" style="display:none;margin-top:8px;">
+            <select id="groupsetB"></select>
+            <div class="gear-readout" id="gearReadoutB"></div>
+          </div>
         </div>
+
       </fieldset>
 
       <fieldset>
@@ -616,16 +642,37 @@ const Calc = window.BraquetsCalc;
 
 // Peupler le select des groupes depuis la base de données
 (function populateGroupsetSelect(){
-  [el('groupset'), el('groupsetB')].forEach(sel => {
+  function buildGroupedOptions(sel, includeCustom){
+    sel.innerHTML = '';
+    // Regrouper par fabricant
+    const brands = {};
     Object.entries(GROUPSETS).forEach(([id, g]) => {
-      if(id === 'custom' && sel.id === 'groupsetB') return; // pas de "personnalisé" pour la comparaison
-      const opt = document.createElement('option');
-      opt.value = id;
-      opt.textContent = g.label;
-      sel.appendChild(opt);
+      if(id === 'custom') return;
+      const b = g.brand || 'Autre';
+      if(!brands[b]) brands[b] = [];
+      brands[b].push([id, g]);
     });
-  });
-  el('groupsetB').selectedIndex = 1; // groupe différent par défaut
+    Object.entries(brands).forEach(([brand, entries]) => {
+      const grp = document.createElement('optgroup');
+      grp.label = brand;
+      entries.forEach(([id, g]) => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = g.label;
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    });
+    if(includeCustom){
+      const opt = document.createElement('option');
+      opt.value = 'custom';
+      opt.textContent = 'Personnalisé…';
+      sel.appendChild(opt);
+    }
+  }
+  buildGroupedOptions(el('groupset'), true);
+  buildGroupedOptions(el('groupsetB'), false);
+  el('groupsetB').selectedIndex = 1;
 })();
 
 function currentGears(){
@@ -914,6 +961,43 @@ document.querySelectorAll('.preset-btn').forEach(btn=>{
   });
 });
 
+// --- Persistance des paramètres UI ----------------------------------------
+// Liste des champs à sauvegarder : [id, type]
+const PERSIST_FIELDS = [
+  ['weight','range'], ['bikeWeight','range'], ['ftp','range'], ['pct','range'],
+  ['maxSlope','range'], ['cadence','range'], ['terrain','select'],
+  ['posture','select'], ['kit','select'], ['rideName','text'],
+  ['groupset','select'], ['cSmallRing','number'], ['cBigRing','number'],
+  ['cCassetteTeeth','text'],
+];
+
+function savePrefs(){
+  const prefs = {};
+  PERSIST_FIELDS.forEach(([id]) => {
+    const e = document.getElementById(id);
+    if(e) prefs[id] = e.value;
+  });
+  localStorage.setItem('braquets-prefs', JSON.stringify(prefs));
+}
+
+function loadPrefs(){
+  try {
+    const prefs = JSON.parse(localStorage.getItem('braquets-prefs') || '{}');
+    PERSIST_FIELDS.forEach(([id]) => {
+      const e = document.getElementById(id);
+      if(e && prefs[id] !== undefined) e.value = prefs[id];
+    });
+  } catch(e){ /* ignore */ }
+}
+
+// Sauvegarder à chaque changement
+PERSIST_FIELDS.forEach(([id]) => {
+  const e = document.getElementById(id);
+  if(e) e.addEventListener('change', savePrefs);
+});
+
+loadPrefs();
+
 update();
 document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', +b.dataset.pct === +el('pct').value));
 
@@ -1071,18 +1155,30 @@ function saveGarage(){
 }
 
 function updateActiveBikeBanner(){
-  const banner = el('activeBikeBanner');
-  if(activeBikeIdx < 0 || activeBikeIdx >= garage.length){
-    banner.style.display = 'none';
-    return;
-  }
+  const hasActive = activeBikeIdx >= 0 && activeBikeIdx < garage.length;
+  el('bikeActiveBlock').style.display = hasActive ? 'block' : 'none';
+  el('bikeNoneBlock').style.display   = hasActive ? 'none'  : 'block';
+  if(!hasActive) return;
   const bike = garage[activeBikeIdx];
   const activeCassetteId = bike.cassettes[bike.activeCassetteIdx ?? 0];
   const gs = GROUPSETS[activeCassetteId];
-  const casLabel = gs ? gs.label.split('—')[1]?.trim() ?? '' : activeCassetteId;
-  banner.style.display = 'block';
-  banner.innerHTML = `🚲 <b>${bike.name}</b> · Cassette active : ${casLabel}`;
+  const cas = gs ? CASSETTES[gs.cassetteId] : null;
+  const casLabel = gs ? gs.label : activeCassetteId;
+  el('activeBikeBanner').innerHTML =
+    `🚲 <b>${bike.name}</b><br>` +
+    `Groupe : ${casLabel}<br>` +
+    (cas ? `Cassette : ${cas.teeth[0]}–${cas.teeth.at(-1)} (${cas.speeds || ''}v) · ${cas.teeth.length} pignons` : '');
 }
+
+// Boutons "aller au garage" depuis l'onglet config
+function goToGarage(){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('[data-tab="garage"]').classList.add('active');
+  el('tab-garage').classList.add('active');
+}
+el('btnGoGarage').addEventListener('click', goToGarage);
+el('btnGoGarage2').addEventListener('click', goToGarage);
 
 function applyActiveBike(){
   if(activeBikeIdx < 0 || activeBikeIdx >= garage.length) return;
@@ -1217,12 +1313,26 @@ function populateBrandSelect(){
   const sel = el('newBrand');
   sel.innerHTML = '<option value="">— Choisir une marque —</option>' +
     Object.keys(BIKES).map(b=>`<option value="${b}">${b}</option>`).join('');
-  // Peupler aussi le select groupe du mode personnalisé
+  // Peupler le select groupe du mode personnalisé avec optgroups par fabricant
   const cgs = el('customGroupset');
-  cgs.innerHTML = Object.entries(GROUPSETS)
-    .filter(([id]) => id !== 'custom')
-    .map(([id,g]) => `<option value="${id}">${g.label}</option>`)
-    .join('');
+  cgs.innerHTML = '';
+  const brands = {};
+  Object.entries(GROUPSETS).forEach(([id, g]) => {
+    if(id === 'custom') return;
+    const b = g.brand || 'Autre';
+    if(!brands[b]) brands[b] = [];
+    brands[b].push([id, g]);
+  });
+  Object.entries(brands).forEach(([brand, entries]) => {
+    const grp = document.createElement('optgroup');
+    grp.label = brand;
+    entries.forEach(([id, g]) => {
+      const opt = document.createElement('option');
+      opt.value = id; opt.textContent = g.label;
+      grp.appendChild(opt);
+    });
+    cgs.appendChild(grp);
+  });
   updateCustomGroupsetReadout();
 }
 
