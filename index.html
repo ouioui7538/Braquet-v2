@@ -33,8 +33,13 @@
   }
   @font-face{font-family:'IBM Plex Sans';src:local('Helvetica Neue');}
   header{
-    padding:28px 32px 18px;
+    padding:18px 24px 12px;
     border-bottom:2px solid var(--ink);
+  }
+  @media(max-width:640px){
+    header{ padding:12px 16px 8px; }
+    header h1{ font-size:16px; }
+    header p{ display:none; }
   }
   header h1{
     font-family:'IBM Plex Mono', monospace;
@@ -151,26 +156,37 @@
     padding:18px;
     overflow-x:auto;
   }
+  /* Navigation : barre en haut sur desktop, barre fixe en bas sur mobile */
   .tabs{
     display:flex;
     gap:0;
     border-bottom:2px solid var(--ink);
     background:var(--paper);
-    padding:0 32px;
+    padding:0 16px;
+    position:sticky;
+    top:0;
+    z-index:100;
   }
   .tab-btn{
     font-family:'IBM Plex Mono', monospace;
     text-transform:uppercase;
-    letter-spacing:0.06em;
-    font-size:13px;
+    letter-spacing:0.04em;
+    font-size:12px;
     background:none;
     border:none;
-    padding:14px 22px;
+    padding:12px 16px;
     cursor:pointer;
     color:var(--muted);
     border-bottom:3px solid transparent;
     margin-bottom:-2px;
+    white-space:nowrap;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
   }
+  .tab-btn .tab-icon{ font-size:18px; }
+  .tab-btn .tab-label{ font-size:10px; }
   .tab-btn.active{
     color:var(--ink);
     border-bottom:3px solid var(--accent2);
@@ -178,6 +194,38 @@
   .tab-btn:hover{color:var(--ink);}
   .tab-panel{display:none;}
   .tab-panel.active{display:block;}
+
+  /* Sur mobile : barre de nav en bas */
+  @media (max-width: 640px){
+    .tabs{
+      position:fixed;
+      bottom:0; left:0; right:0; top:auto;
+      border-bottom:none;
+      border-top:2px solid var(--ink);
+      padding:0;
+      justify-content:space-around;
+      background:var(--paper);
+      z-index:200;
+    }
+    .tab-btn{
+      flex:1;
+      padding:8px 4px 10px;
+      border-bottom:none;
+      border-top:3px solid transparent;
+      margin-bottom:0;
+      margin-top:-2px;
+      font-size:9px;
+      letter-spacing:0.03em;
+    }
+    .tab-btn .tab-icon{ font-size:20px; }
+    .tab-btn.active{
+      border-bottom:none;
+      border-top:3px solid var(--accent2);
+      color:var(--accent2);
+    }
+    /* Laisser de la place pour la barre de nav en bas */
+    body{ padding-bottom:72px; }
+  }
   .config-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -333,10 +381,22 @@
 </header>
 
 <div class="tabs">
-  <button class="tab-btn active" data-tab="config">1. Configuration</button>
-  <button class="tab-btn" data-tab="analyse">2. Analyse</button>
-  <button class="tab-btn" data-tab="gpx">3. Parcours GPX</button>
-  <button class="tab-btn" data-tab="garage">4. Mon garage</button>
+  <button class="tab-btn active" data-tab="config">
+    <span class="tab-icon">⚙️</span>
+    <span class="tab-label">Config</span>
+  </button>
+  <button class="tab-btn" data-tab="analyse">
+    <span class="tab-icon">📊</span>
+    <span class="tab-label">Analyse</span>
+  </button>
+  <button class="tab-btn" data-tab="gpx">
+    <span class="tab-icon">🗺️</span>
+    <span class="tab-label">Parcours</span>
+  </button>
+  <button class="tab-btn" data-tab="garage">
+    <span class="tab-icon">🚲</span>
+    <span class="tab-label">Garage</span>
+  </button>
 </div>
 
 <!-- ONGLET 1 : CONFIGURATION VÉLO / CYCLISTE -->
@@ -1462,8 +1522,6 @@ el('btnConfirmBike').addEventListener('click', ()=>{
   }
   garage.push(bike);
   saveGarage();
-  garage.push(bike);
-  saveGarage();
   renderGarage();
   resetAddForm();
 });
@@ -1472,8 +1530,17 @@ renderGarage();
 updateActiveBikeBanner();
 
 if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  window.addEventListener('load', async ()=>{
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js');
+      // Forcer la vérification d'une mise à jour à chaque chargement de page
+      // (contourne le cache HTTP de Safari sur sw.js)
+      reg.update();
+      // Si un nouveau SW vient de s'activer, recharger la page pour appliquer
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+        window.location.reload();
+      });
+    } catch(e){}
   });
 }
 </script>
