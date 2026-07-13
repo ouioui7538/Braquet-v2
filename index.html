@@ -369,6 +369,7 @@
 
       <fieldset>
         <legend>Groupe / braquets</legend>
+        <div id="activeBikeBanner" style="display:none;margin-bottom:10px;padding:8px 10px;background:rgba(61,90,64,0.07);border-left:3px solid var(--accent);font-size:12px;line-height:1.6;"></div>
         <select id="groupset"></select>
         <div id="customGears" style="display:none;margin-top:10px;">
           <div class="row2">
@@ -520,27 +521,66 @@
   </div>
 
   <div class="add-bike-form" id="addBikeForm">
-    <div class="form-row">
-      <div>
-        <label>Marque</label>
-        <select id="newBrand" style="width:100%;"></select>
+
+    <!-- Sélecteur de mode -->
+    <div style="display:flex;gap:0;margin-bottom:16px;border:1px solid var(--line);">
+      <button class="btn-sm" id="modeKnown" style="flex:1;border:none;background:var(--accent);color:#fff;">Catalogue</button>
+      <button class="btn-sm" id="modeCustom" style="flex:1;border:none;">Vélo personnalisé</button>
+    </div>
+
+    <!-- Mode catalogue -->
+    <div id="blockKnown">
+      <div class="form-row">
+        <div>
+          <label>Marque</label>
+          <select id="newBrand" style="width:100%;"></select>
+        </div>
+        <div>
+          <label>Modèle</label>
+          <select id="newModel" style="width:100%;"></select>
+        </div>
       </div>
-      <div>
-        <label>Modèle</label>
-        <select id="newModel" style="width:100%;"></select>
+      <div class="form-row">
+        <div>
+          <label>Millésime</label>
+          <select id="newYear" style="width:100%;"></select>
+        </div>
+        <div>
+          <label>Finition</label>
+          <select id="newFinish" style="width:100%;"></select>
+        </div>
       </div>
     </div>
-    <div class="form-row">
-      <div>
-        <label>Millésime</label>
-        <select id="newYear" style="width:100%;"></select>
+
+    <!-- Mode personnalisé -->
+    <div id="blockCustom" style="display:none;">
+      <div class="form-row">
+        <div>
+          <label>Marque (libre)</label>
+          <input type="text" id="customBrand" placeholder="ex: Colnago" style="width:100%;">
+        </div>
+        <div>
+          <label>Modèle (libre)</label>
+          <input type="text" id="customModel" placeholder="ex: C68" style="width:100%;">
+        </div>
       </div>
-      <div>
-        <label>Finition</label>
-        <select id="newFinish" style="width:100%;"></select>
+      <div class="form-row">
+        <div>
+          <label>Millésime</label>
+          <input type="number" id="customYear" value="2024" min="2000" max="2030" style="width:100%;">
+        </div>
+        <div>
+          <label>Poids vélo (kg)</label>
+          <input type="number" id="customWeight" value="8.5" min="4" max="20" step="0.1" style="width:100%;">
+        </div>
       </div>
+      <label>Groupe</label>
+      <select id="customGroupset" style="width:100%;margin-bottom:10px;"></select>
+      <div id="customGroupsetReadout" class="gear-readout"></div>
     </div>
-    <div style="margin-bottom:10px;">
+
+    <!-- Champs communs -->
+    <div style="margin:12px 0 10px;">
       <label>Nom personnalisé (optionnel)</label>
       <input type="text" id="newBikeName" placeholder="ex: Mon gravel bleu" style="width:100%;">
     </div>
@@ -1030,18 +1070,40 @@ function saveGarage(){
   localStorage.setItem('braquets-active-bike', activeBikeIdx);
 }
 
+function updateActiveBikeBanner(){
+  const banner = el('activeBikeBanner');
+  if(activeBikeIdx < 0 || activeBikeIdx >= garage.length){
+    banner.style.display = 'none';
+    return;
+  }
+  const bike = garage[activeBikeIdx];
+  const activeCassetteId = bike.cassettes[bike.activeCassetteIdx ?? 0];
+  const gs = GROUPSETS[activeCassetteId];
+  const casLabel = gs ? gs.label.split('—')[1]?.trim() ?? '' : activeCassetteId;
+  banner.style.display = 'block';
+  banner.innerHTML = `🚲 <b>${bike.name}</b> · Cassette active : ${casLabel}`;
+}
+
 function applyActiveBike(){
   if(activeBikeIdx < 0 || activeBikeIdx >= garage.length) return;
   const bike = garage[activeBikeIdx];
-  // choisir la cassette active du vélo
   const activeCassetteId = bike.cassettes[bike.activeCassetteIdx ?? 0];
-  // trouver le groupset correspondant
-  const gsEntry = Object.entries(GROUPSETS).find(([id]) => id === activeCassetteId);
-  if(gsEntry){
-    el('groupset').value = gsEntry[0];
-    el('customGears').style.display = 'none';
+  if(activeCassetteId === 'custom'){
+    // vélo personnalisé : charger les dents manuelles
+    el('groupset').value = 'custom';
+    el('customGears').style.display = 'block';
+    if(bike.customTeeth) el('cCassetteTeeth').value = bike.customTeeth;
+    if(bike.customSmallRing) el('cSmallRing').value = bike.customSmallRing;
+    if(bike.customBigRing) el('cBigRing').value = bike.customBigRing;
+  } else {
+    const gsEntry = Object.entries(GROUPSETS).find(([id]) => id === activeCassetteId);
+    if(gsEntry){
+      el('groupset').value = gsEntry[0];
+      el('customGears').style.display = 'none';
+    }
   }
   if(bike.bikeWeight) el('bikeWeight').value = bike.bikeWeight;
+  updateActiveBikeBanner();
   update();
 }
 
@@ -1149,10 +1211,41 @@ function addCassette(bikeIdx){
 }
 
 // Formulaire d'ajout de vélo
+let addBikeMode = 'known'; // 'known' | 'custom'
+
 function populateBrandSelect(){
   const sel = el('newBrand');
   sel.innerHTML = '<option value="">— Choisir une marque —</option>' +
     Object.keys(BIKES).map(b=>`<option value="${b}">${b}</option>`).join('');
+  // Peupler aussi le select groupe du mode personnalisé
+  const cgs = el('customGroupset');
+  cgs.innerHTML = Object.entries(GROUPSETS)
+    .filter(([id]) => id !== 'custom')
+    .map(([id,g]) => `<option value="${id}">${g.label}</option>`)
+    .join('');
+  updateCustomGroupsetReadout();
+}
+
+function updateCustomGroupsetReadout(){
+  const gsId = el('customGroupset').value;
+  const gs = GROUPSETS[gsId];
+  const cas = gs ? CASSETTES[gs.cassetteId] : null;
+  el('customGroupsetReadout').innerHTML = gs
+    ? `Braquet facile : <b>${gs.small}×${CASSETTES[gs.cassetteId].teeth.at(-1)}</b> — ` +
+      `Braquet dur : <b>${gs.big}×${CASSETTES[gs.cassetteId].teeth[0]}</b><br>` +
+      `Cassette : <b>${cas.teeth.join(' – ')}</b>`
+    : '';
+}
+
+function setAddBikeMode(mode){
+  addBikeMode = mode;
+  el('blockKnown').style.display = mode === 'known' ? 'block' : 'none';
+  el('blockCustom').style.display = mode === 'custom' ? 'block' : 'none';
+  el('modeKnown').style.background = mode === 'known' ? 'var(--accent)' : '';
+  el('modeKnown').style.color = mode === 'known' ? '#fff' : '';
+  el('modeCustom').style.background = mode === 'custom' ? 'var(--accent)' : '';
+  el('modeCustom').style.color = mode === 'custom' ? '#fff' : '';
+  el('newBikePreview').innerHTML = '';
 }
 
 function onBrandChange(){
@@ -1198,43 +1291,75 @@ function updateNewBikePreview(){
   const gs = GROUPSETS[spec.groupsetId];
   const cas = gs ? CASSETTES[gs.cassetteId] : null;
   preview.innerHTML = `Groupe : <b>${gs?.label ?? spec.groupsetId}</b><br>` +
-    `Cassette : <b>${cas ? cas.teeth.join('-') : '—'}</b><br>` +
+    `Cassette : <b>${cas ? cas.teeth.join(' – ') : '—'}</b><br>` +
     `Poids vélo (constructeur) : <b>${spec.weight} kg</b>`;
 }
 
+el('modeKnown').addEventListener('click', () => setAddBikeMode('known'));
+el('modeCustom').addEventListener('click', () => setAddBikeMode('custom'));
 el('newBrand').addEventListener('change', onBrandChange);
 el('newModel').addEventListener('change', onModelChange);
 el('newYear').addEventListener('change', onYearChange);
 el('newFinish').addEventListener('change', updateNewBikePreview);
+el('customGroupset').addEventListener('change', updateCustomGroupsetReadout);
+
+function resetAddForm(){
+  el('addBikeForm').classList.remove('open');
+  el('newBikeName').value='';
+  el('newBrand').value=''; el('newModel').innerHTML=''; el('newYear').innerHTML=''; el('newFinish').innerHTML='';
+  el('newBikePreview').innerHTML='';
+  el('customBrand').value=''; el('customModel').value='';
+  el('customYear').value='2024'; el('customWeight').value='8.5';
+}
 
 el('btnAddBike').addEventListener('click', ()=>{
+  const isOpen = el('addBikeForm').classList.contains('open');
   el('addBikeForm').classList.toggle('open');
-  if(el('addBikeForm').classList.contains('open')) populateBrandSelect();
+  if(!isOpen){ populateBrandSelect(); setAddBikeMode('known'); }
 });
-el('btnCancelBike').addEventListener('click', ()=>el('addBikeForm').classList.remove('open'));
+el('btnCancelBike').addEventListener('click', resetAddForm);
 
 el('btnConfirmBike').addEventListener('click', ()=>{
-  const brand=el('newBrand').value, model=el('newModel').value,
-        year=el('newYear').value, finish=el('newFinish').value;
-  if(!brand||!model||!year||!finish){ alert('Merci de remplir tous les champs.'); return; }
-  const spec = BIKES[brand][model].years[year][finish];
   const customName = el('newBikeName').value.trim();
-  const bike = {
-    name: customName || `${brand} ${model} ${year} ${finish}`,
-    brand, model, year, finish,
-    bikeWeight: spec.weight,
-    cassettes: [spec.groupsetId],
-    activeCassetteIdx: 0,
-  };
+  let bike;
+  if(addBikeMode === 'known'){
+    const brand=el('newBrand').value, model=el('newModel').value,
+          year=el('newYear').value, finish=el('newFinish').value;
+    if(!brand||!model||!year||!finish){ alert('Merci de remplir tous les champs.'); return; }
+    const spec = BIKES[brand][model].years[year][finish];
+    bike = {
+      name: customName || `${brand} ${model} ${year} ${finish}`,
+      brand, model, year, finish,
+      bikeWeight: spec.weight,
+      cassettes: [spec.groupsetId],
+      activeCassetteIdx: 0,
+    };
+  } else {
+    const brand = el('customBrand').value.trim() || 'Autre';
+    const model = el('customModel').value.trim() || 'Vélo';
+    const year = el('customYear').value;
+    const gsId = el('customGroupset').value;
+    const weight = parseFloat(el('customWeight').value) || 9;
+    if(!gsId){ alert('Merci de choisir un groupe.'); return; }
+    bike = {
+      name: customName || `${brand} ${model} ${year}`,
+      brand, model, year: year.toString(), finish: 'Personnalisé',
+      bikeWeight: weight,
+      cassettes: [gsId],
+      activeCassetteIdx: 0,
+      isCustom: true,
+    };
+  }
+  garage.push(bike);
+  saveGarage();
   garage.push(bike);
   saveGarage();
   renderGarage();
-  el('addBikeForm').classList.remove('open');
-  el('newBikeName').value='';
-  el('newBrand').value=''; el('newModel').innerHTML=''; el('newYear').innerHTML=''; el('newFinish').innerHTML=''; el('newBikePreview').innerHTML='';
+  resetAddForm();
 });
 
 renderGarage();
+updateActiveBikeBanner();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
