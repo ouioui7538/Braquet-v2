@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Braquets &amp; pentes</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3d5a40">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Braquets">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="cassettes.js"></script>
+<script src="calc.js"></script>
+<style>
+  :root{
+    --ink:#1b2420;
+    --paper:#f6f4ee;
+    --line:#cfc9ba;
+    --accent:#3d5a40;
+    --accent2:#a8542e;
+    --muted:#6b6457;
+    --panel:#ffffff;
+    --warn:#a8542e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  @font-face{font-family:'IBM Plex Sans';src:local('Helvetica Neue');}
+  header{
+    padding:28px 32px 18px;
+    border-bottom:2px solid var(--ink);
+  }
+  header h1{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:22px;
+    letter-spacing:0.02em;
+    margin:0 0 4px;
+    text-transform:uppercase;
+  }
+  header p{
+    margin:0;
+    color:var(--muted);
+    font-size:14px;
+    max-width:640px;
+  }
+  .wrap{
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:0;
+    min-height:calc(100vh - 100px);
+  }
+  @media (max-width:880px){
+    .wrap{grid-template-columns:1fr;}
+  }
+  .controls{
+    padding:24px;
+    border-right:2px solid var(--ink);
+    background:var(--panel);
+  }
+  @media (max-width:880px){
+    .controls{border-right:none;border-bottom:2px solid var(--ink);}
+  }
+  fieldset{
+    border:none;
+    border-top:1px solid var(--line);
+    padding:16px 0;
+    margin:0;
+  }
+  fieldset:first-of-type{border-top:none;padding-top:0;}
+  legend{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--accent);
+    padding:0;
+    margin-bottom:10px;
+  }
+  label{
+    display:block;
+    font-size:13px;
+    margin:10px 0 4px;
+    color:var(--ink);
+  }
+  label span.val{
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--accent2);
+    font-weight:600;
+  }
+  input[type=range]{
+    width:100%;
+    accent-color:var(--accent);
+  }
+  select, input[type=number]{
+    width:100%;
+    padding:7px 8px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-size:13px;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .gear-readout{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+    margin-top:6px;
+    line-height:1.5;
+  }
+  .gear-readout b{color:var(--ink);}
+  main{
+    padding:24px 28px;
+  }
+  .chart-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:18px;
+    margin-bottom:20px;
+  }
+  .chart-card h2{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    margin:0 0 12px;
+    color:var(--ink);
+  }
+  canvas{max-height:380px;}
+  .legend-note{
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+    font-size:12px;
+    color:var(--muted);
+    margin-top:10px;
+    border-top:1px solid var(--line);
+    padding-top:10px;
+  }
+  .legend-note span{display:flex;align-items:center;gap:6px;}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .table-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:18px;
+    overflow-x:auto;
+  }
+  .tabs{
+    display:flex;
+    gap:0;
+    border-bottom:2px solid var(--ink);
+    background:var(--paper);
+    padding:0 32px;
+  }
+  .tab-btn{
+    font-family:'IBM Plex Mono', monospace;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    font-size:13px;
+    background:none;
+    border:none;
+    padding:14px 22px;
+    cursor:pointer;
+    color:var(--muted);
+    border-bottom:3px solid transparent;
+    margin-bottom:-2px;
+  }
+  .tab-btn.active{
+    color:var(--ink);
+    border-bottom:3px solid var(--accent2);
+  }
+  .tab-btn:hover{color:var(--ink);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .config-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:0;
+    max-width:980px;
+    margin:0 auto;
+  }
+  .config-grid > fieldset{padding:20px 28px;}
+  @media (max-width:760px){
+    .config-grid{grid-template-columns:1fr;}
+  }
+  .config-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    margin:24px 28px;
+  }
+  .cadence-bar{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:18px 22px;
+    margin:24px 28px 0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .cadence-bar .cadence-row{display:flex;align-items:center;gap:18px;}
+  .cadence-bar label{margin:0;font-size:13px;white-space:nowrap;}
+  .cadence-bar input[type=range]{flex:1;}
+  .slope-readout{
+    font-size:14px;
+    color:var(--ink);
+    padding-top:10px;
+    border-top:1px solid var(--line);
+  }
+  .analysis-main{padding-bottom:24px;}
+  .preset-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  .preset-btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    background:#fff;
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:6px 10px;
+    cursor:pointer;
+    border-radius:2px;
+  }
+  .preset-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .preset-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .diagnostic-banner{
+    margin:24px 28px 0;
+    padding:14px 18px;
+    border:1px solid var(--line);
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .diagnostic-banner.good{background:rgba(61,90,64,0.08); border-color:var(--accent);}
+  .diagnostic-banner.bad{background:rgba(168,84,46,0.08); border-color:var(--accent2);}
+  .gpx-upload{
+    margin:24px 28px 0;
+    padding:24px;
+    border:2px dashed var(--line);
+    text-align:center;
+    background:var(--panel);
+  }
+  .gpx-upload input[type=file]{font-size:13px;}
+  .gpx-summary{
+    margin:20px 28px 0;
+    padding:16px 18px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    font-size:13px;
+    line-height:1.7;
+  }
+  tr.climb-critical td{background:rgba(168,84,46,0.10);}
+  tr.climb-critical td:first-child{font-weight:600;}
+  .garage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:24px 28px;}
+  .bike-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:16px;
+  }
+  .bike-card.active-bike{border:2px solid var(--accent2);}
+  .bike-card h3{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    margin:0 0 8px;
+    color:var(--ink);
+  }
+  .bike-card .bike-meta{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px;}
+  .bike-card .cassette-list{font-size:12px;margin:8px 0;}
+  .bike-card .cassette-list label{display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0;}
+  .bike-card .cassette-list input[type=radio]{accent-color:var(--accent2);}
+  .bike-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .btn-sm{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    padding:5px 10px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .btn-sm:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-sm.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn-sm.danger{border-color:var(--accent2);color:var(--accent2);}
+  .garage-toolbar{padding:20px 28px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .add-bike-form{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:18px;
+    margin:0 28px;
+    display:none;
+  }
+  .add-bike-form.open{display:block;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:640px){.form-row{grid-template-columns:1fr;}}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  th, td{
+    padding:6px 10px;
+    text-align:right;
+    border-bottom:1px solid var(--line);
+    font-family:'IBM Plex Mono', monospace;
+  }
+  th:first-child, td:first-child{text-align:left;font-family:inherit;}
+  th{
+    color:var(--muted);
+    font-weight:500;
+    text-transform:uppercase;
+    font-size:11px;
+    letter-spacing:0.04em;
+  }
+  .flag{color:var(--warn);font-weight:700;}
+  .ok{color:var(--accent);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Braquets &amp; pentes</h1>
+  <p>Prototype de calcul : vitesse mécanique par braquet vs. vitesse soutenable selon la pente, le poids et la puissance. Repère où la cadence requise sort de la plage humaine.</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="config">1. Configuration</button>
+  <button class="tab-btn" data-tab="analyse">2. Analyse</button>
+  <button class="tab-btn" data-tab="gpx">3. Parcours GPX</button>
+  <button class="tab-btn" data-tab="garage">4. Mon garage</button>
+</div>
+
+<!-- ONGLET 1 : CONFIGURATION VÉLO / CYCLISTE -->
+<div class="tab-panel active" id="tab-config">
+  <div class="config-card">
+    <div class="config-grid">
+
+      <fieldset>
+        <legend>Cycliste</legend>
+        <div class="row2">
+          <div>
+            <label>Poids corps (kg) <span class="val" id="vWeight">70</span></label>
+            <input type="range" id="weight" min="45" max="120" value="70" step="1">
+          </div>
+          <div>
+            <label>Poids vélo (kg) <span class="val" id="vBikeW">9</span></label>
+            <input type="range" id="bikeWeight" min="6" max="16" value="9" step="0.5">
+          </div>
+        </div>
+        <label>FTP (W) <span class="val" id="vFtp">220</span></label>
+        <input type="range" id="ftp" min="100" max="450" value="220" step="5">
+        <label>% FTP soutenable <span class="val" id="vPct">85</span>%</label>
+        <input type="range" id="pct" min="70" max="120" value="85" step="1">
+        <div class="preset-row">
+          <button type="button" class="preset-btn" data-pct="105">Sprint (&lt;5min)</button>
+          <button type="button" class="preset-btn" data-pct="95">Seuil (5-20min)</button>
+          <button type="button" class="preset-btn" data-pct="85">Long (&gt;20min)</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Groupe / braquets</legend>
+        <select id="groupset"></select>
+        <div id="customGears" style="display:none;margin-top:10px;">
+          <div class="row2">
+            <div><label>Plateau petit</label><input type="number" id="cSmallRing" value="34"></div>
+            <div><label>Plateau grand</label><input type="number" id="cBigRing" value="50"></div>
+          </div>
+          <label style="margin-top:8px;">Pignons de cassette (séparés par des virgules, croissant)</label>
+          <input type="text" id="cCassetteTeeth" value="11,12,13,14,16,18,20,22,25,28,30">
+        </div>
+        <div class="gear-readout" id="gearReadout"></div>
+        <label style="margin-top:12px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="compareToggle" style="width:auto;">
+          Comparer avec un second groupe
+        </label>
+        <div id="compareBlock" style="display:none;margin-top:8px;">
+          <select id="groupsetB"></select>
+          <div class="gear-readout" id="gearReadoutB"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Sortie / objectif</legend>
+        <label>Nom de la sortie (optionnel)</label>
+        <input type="text" id="rideName" placeholder="ex: Cyclo des Trois Cols">
+        <label style="margin-top:10px;">Pente maximale envisagée (%) <span class="val" id="vSlope">12</span></label>
+        <input type="range" id="maxSlope" min="2" max="25" value="12" step="1">
+        <label>Type de terrain (ajuste résistance roulement)</label>
+        <select id="terrain">
+          <option value="0.0045">Route lisse</option>
+          <option value="0.006" selected>Route moyenne</option>
+          <option value="0.012">Gravel / chemin</option>
+        </select>
+      </fieldset>
+
+      <fieldset>
+        <legend>Aérodynamique (avancé)</legend>
+        <label>Position</label>
+        <select id="posture">
+          <option value="hoods" selected>Mains sur poignées de frein</option>
+          <option value="drops">Mains en bas de cintre</option>
+          <option value="aero">Prolongateurs / position aéro</option>
+        </select>
+        <label>Tenue</label>
+        <select id="kit">
+          <option value="casual">Vêtements ville, coupe ample</option>
+          <option value="jersey" selected>Tenue cycliste classique</option>
+          <option value="skinsuit">Combinaison aéro</option>
+        </select>
+        <div class="gear-readout" id="cdaReadout" style="margin-top:8px;"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Résumé</legend>
+        <div class="gear-readout" id="configSummary" style="font-size:13px;line-height:1.7;"></div>
+      </fieldset>
+
+    </div>
+  </div>
+</div>
+
+<!-- ONGLET 2 : ANALYSE -->
+<div class="tab-panel" id="tab-analyse">
+
+  <div class="cadence-bar">
+    <div class="cadence-row">
+      <label>Cadence cible <span class="val" id="vCad">75</span> rpm</label>
+      <input type="range" id="cadence" min="40" max="110" value="75" step="1">
+    </div>
+    <span class="slope-readout">Pente max tenable (braquet facile) : <span class="val" id="vSlopeMax">—</span>%</span>
+  </div>
+
+  <div class="diagnostic-banner" id="diagnosticBanner"></div>
+
+  <main class="analysis-main">
+    <div class="chart-card">
+      <h2>Cadence requise pour tenir la vitesse soutenable, par braquet</h2>
+      <canvas id="cadenceChart"></canvas>
+      <div class="legend-note">
+        <span><i class="dot" style="background:#3d5a40"></i> Braquet le plus facile</span>
+        <span><i class="dot" style="background:#7a9b7e"></i> Braquet le plus dur</span>
+        <span><i class="dot" style="background:#cfe8d2"></i> Zone entre les deux braquets</span>
+        <span><i class="dot" style="background:#f3d6c6"></i> Hors 40–110 rpm = inadapté</span>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h2>Pente maximale soutenable selon le braquet, à cadence cible (hors combinaisons croisées)</h2>
+      <canvas id="slopeByGearChart"></canvas>
+      <div class="legend-note">
+        <span><i class="dot" style="background:#3d5a40"></i> Pente max tenable (à cadence cible)</span>
+        <span><i class="dot" style="background:#a8542e"></i> Braquet le plus facile / le plus dur (repères)</span>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <h2 style="font-family:'IBM Plex Mono',monospace;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 12px;">Lecture par paliers de pente</h2>
+      <table id="dataTable">
+        <thead>
+          <tr><th>Pente</th><th>V. soutenable</th><th>Cadence (facile)</th><th>Cadence (dur)</th><th>Diagnostic</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- ONGLET 3 : PARCOURS GPX -->
+<div class="tab-panel" id="tab-gpx">
+  <div class="gpx-upload">
+    <label for="gpxFile" style="font-size:14px;display:block;margin-bottom:10px;">
+      Importer le tracé GPX de la sortie à vérifier
+    </label>
+    <input type="file" id="gpxFile" accept=".gpx">
+    <div style="margin-top:10px;font-size:12px;color:var(--muted);">
+      Analyse faite localement dans le navigateur — le fichier n'est pas envoyé sur un serveur.
+    </div>
+  </div>
+
+  <div id="gpxResults" style="display:none;">
+    <div class="gpx-summary" id="gpxSummary"></div>
+
+    <div class="chart-card" style="margin:20px 28px 0;">
+      <h2>Profil altimétrique — montées détectées en surbrillance</h2>
+      <canvas id="elevationChart"></canvas>
+    </div>
+
+    <div class="table-card" style="margin:20px 28px 0;">
+      <h2 style="font-family:'IBM Plex Mono',monospace;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 12px;">Montées détectées</h2>
+      <table id="climbsTable">
+        <thead>
+          <tr><th>Km départ</th><th>Longueur</th><th>D+</th><th>Pente moy.</th><th>Pente max</th><th>Durée est.</th><th>Effort</th><th>Diagnostic</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="gpxEmpty" class="gpx-summary" style="margin-top:20px;">
+    Aucun fichier importé pour le moment. Les réglages de l'onglet Configuration (poids, FTP, groupe, cadence cible définie sur l'onglet Analyse) seront utilisés pour l'analyse.
+  </div>
+</div>
+
+<!-- ONGLET 4 : GARAGE -->
+<div class="tab-panel" id="tab-garage">
+
+  <div class="garage-toolbar">
+    <button class="btn-sm primary" id="btnAddBike">+ Ajouter un vélo</button>
+    <span style="font-size:12px;color:var(--muted);">Le vélo actif charge automatiquement son groupe dans l'onglet Configuration.</span>
+  </div>
+
+  <div class="add-bike-form" id="addBikeForm">
+    <div class="form-row">
+      <div>
+        <label>Marque</label>
+        <select id="newBrand" style="width:100%;"></select>
+      </div>
+      <div>
+        <label>Modèle</label>
+        <select id="newModel" style="width:100%;"></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Millésime</label>
+        <select id="newYear" style="width:100%;"></select>
+      </div>
+      <div>
+        <label>Finition</label>
+        <select id="newFinish" style="width:100%;"></select>
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label>Nom personnalisé (optionnel)</label>
+      <input type="text" id="newBikeName" placeholder="ex: Mon gravel bleu" style="width:100%;">
+    </div>
+    <div id="newBikePreview" class="gear-readout" style="margin-bottom:12px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-sm primary" id="btnConfirmBike">Ajouter ce vélo</button>
+      <button class="btn-sm" id="btnCancelBike">Annuler</button>
+    </div>
+  </div>
+
+  <div class="garage-grid" id="garageGrid">
+    <div style="padding:20px;color:var(--muted);font-size:13px;">
+      Aucun vélo dans le garage. Ajoutez-en un avec le bouton ci-dessus.
+    </div>
+  </div>
+</div>
+
+<script src="gpx.js"></script>
+<script src="bikes.js"></script>
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+const el = id => document.getElementById(id);
+const ids = ['weight','bikeWeight','ftp','pct','maxSlope','cadence'];
+const Calc = window.BraquetsCalc;
+
+// Peupler le select des groupes depuis la base de données
+(function populateGroupsetSelect(){
+  [el('groupset'), el('groupsetB')].forEach(sel => {
+    Object.entries(GROUPSETS).forEach(([id, g]) => {
+      if(id === 'custom' && sel.id === 'groupsetB') return; // pas de "personnalisé" pour la comparaison
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = g.label;
+      sel.appendChild(opt);
+    });
+  });
+  el('groupsetB').selectedIndex = 1; // groupe différent par défaut
+})();
+
+function currentGears(){
+  const gs = el('groupset').value;
+  if(gs === 'custom'){
+    const teeth = el('cCassetteTeeth').value.split(',').map(s=>parseInt(s.trim(),10)).filter(n=>!isNaN(n)).sort((a,b)=>a-b);
+    return {
+      small: +el('cSmallRing').value,
+      big: +el('cBigRing').value,
+      cassetteTeeth: teeth.length ? teeth : [11,28]
+    };
+  }
+  const def = GROUPSETS[gs];
+  return { small: def.small, big: def.big, cassetteTeeth: CASSETTES[def.cassetteId].teeth };
+}
+
+function gearsForId(id){
+  const def = GROUPSETS[id];
+  return { small: def.small, big: def.big, cassetteTeeth: CASSETTES[def.cassetteId].teeth, label: def.label };
+}
+
+function gearRatioEasy(g){ return Calc.easiestGear(g.small, g.cassetteTeeth).ratio; }
+function gearRatioHard(g){ return Calc.hardestGear(g.big, g.cassetteTeeth).ratio; }
+const speedFromCadence = (ratio, cadenceRpm) => Calc.speedFromCadence(ratio, cadenceRpm);
+const cadenceFromSpeed = (ratio, speedKmh) => Calc.cadenceFromSpeed(ratio, speedKmh);
+const powerForSpeed = (vMs, slopePct, totalMassKg, crr, cda) => Calc.powerForSpeed(vMs, slopePct, totalMassKg, crr, cda);
+const solveSpeedForPower = (Psustain, slopePct, totalMassKg, crr, cda) => Calc.solveSpeedForPower(Psustain, slopePct, totalMassKg, crr, cda);
+const solveSlopeForSpeed = (vMs, Psustain, totalMassKg, crr, cda) => Calc.solveSlopeForSpeed(vMs, Psustain, totalMassKg, crr, cda);
+
+function buildContext(){
+  const weight = +el('weight').value;
+  const bikeWeight = +el('bikeWeight').value;
+  const ftp = +el('ftp').value;
+  const crr = +el('terrain').value;
+  const posture = el('posture').value;
+  const kit = el('kit').value;
+  const cda = Calc.computeCdA(posture, kit);
+  const cadenceRef = +el('cadence').value;
+  const g = currentGears();
+  const ratioEasy = gearRatioEasy(g);
+  const ratioHard = gearRatioHard(g);
+  const totalMass = weight + bikeWeight;
+  const easiest = Calc.easiestGear(g.small, g.cassetteTeeth);
+  const hardest = Calc.hardestGear(g.big, g.cassetteTeeth);
+  return { weight, bikeWeight, ftp, crr, cda, cadenceRef, g, ratioEasy, ratioHard, totalMass, easiest, hardest };
+}
+
+let speedChart, cadenceChart, slopeByGearChart, elevationChart;
+
+function update(){
+  const ctx = buildContext();
+  const { ftp, crr, cda, cadenceRef, g, ratioEasy, ratioHard, totalMass, easiest, hardest } = ctx;
+  const weight = ctx.weight, bikeWeight = ctx.bikeWeight;
+  const pct = +el('pct').value;
+  const maxSlope = +el('maxSlope').value;
+  const Psustain = ftp * pct/100;
+
+  el('vWeight').textContent = weight;
+  el('vBikeW').textContent = bikeWeight;
+  el('vFtp').textContent = ftp;
+  el('vPct').textContent = pct;
+  el('vSlope').textContent = maxSlope;
+  el('vCad').textContent = cadenceRef;
+  el('cdaReadout').innerHTML = `CdA estimé : <b>${cda.toFixed(3)} m²</b>`;
+
+  el('customGears').style.display = el('groupset').value === 'custom' ? 'block' : 'none';
+  const compareActive = el('compareToggle').checked;
+  el('compareBlock').style.display = compareActive ? 'block' : 'none';
+
+  el('gearReadout').innerHTML =
+    `Braquet le plus facile : <b>${easiest.ring}x${easiest.cog}</b> (dév. ${(ratioEasy*Calc.WHEEL_CIRC_M).toFixed(2)} m)<br>` +
+    `Braquet le plus dur : <b>${hardest.ring}x${hardest.cog}</b> (dév. ${(ratioHard*Calc.WHEEL_CIRC_M).toFixed(2)} m)`;
+
+  el('configSummary').innerHTML =
+    `Poids total (corps + vélo) : <b>${totalMass.toFixed(1)} kg</b><br>` +
+    `Puissance soutenable retenue : <b>${Psustain.toFixed(0)} W</b> (${pct}% de ${ftp} W)<br>` +
+    `Pente max envisagée : <b>${maxSlope}%</b><br>` +
+    `Groupe : <b>${g.small}/${g.big}</b> — cassette <b>${g.cassetteTeeth[0]}-${g.cassetteTeeth[g.cassetteTeeth.length-1]}</b><br>` +
+    `CdA (position + tenue) : <b>${cda.toFixed(3)} m²</b>`;
+
+  const slopes = [];
+  const vSoutenable = [];
+  const vMecaEasy = [];
+  const vMecaHard = [];
+  const cadEasy = [];
+  const cadHard = [];
+
+  const steps = 20;
+  for(let i=0;i<=steps;i++){
+    const slope = maxSlope * i/steps;
+    slopes.push(slope.toFixed(1));
+    const vMs = solveSpeedForPower(Psustain, slope, totalMass, crr, cda);
+    const vKmh = vMs*3.6;
+    vSoutenable.push(vKmh);
+    vMecaEasy.push(speedFromCadence(ratioEasy, cadenceRef));
+    vMecaHard.push(speedFromCadence(ratioHard, cadenceRef));
+    cadEasy.push(cadenceFromSpeed(ratioEasy, vKmh));
+    cadHard.push(cadenceFromSpeed(ratioHard, vKmh));
+  }
+
+  const slopeMaxEasyAtCadence = solveSlopeForSpeed(
+    speedFromCadence(ratioEasy, cadenceRef)/3.6, Psustain, totalMass, crr, cda
+  );
+  el('vSlopeMax').textContent = slopeMaxEasyAtCadence.toFixed(1);
+
+  // Comparaison avec un second groupe (optionnel)
+  let cadEasyB = null, cadHardB = null, gB = null, easiestB = null, hardestB = null;
+  if(compareActive){
+    gB = gearsForId(el('groupsetB').value);
+    const ratioEasyB = gearRatioEasy(gB);
+    const ratioHardB = gearRatioHard(gB);
+    easiestB = Calc.easiestGear(gB.small, gB.cassetteTeeth);
+    hardestB = Calc.hardestGear(gB.big, gB.cassetteTeeth);
+    cadEasyB = []; cadHardB = [];
+    for(let i=0;i<=steps;i++){
+      const slope = maxSlope * i/steps;
+      const vMs = solveSpeedForPower(Psustain, slope, totalMass, crr, cda);
+      const vKmh = vMs*3.6;
+      cadEasyB.push(cadenceFromSpeed(ratioEasyB, vKmh));
+      cadHardB.push(cadenceFromSpeed(ratioHardB, vKmh));
+    }
+    el('gearReadoutB').innerHTML =
+      `Braquet le plus facile : <b>${easiestB.ring}x${easiestB.cog}</b><br>` +
+      `Braquet le plus dur : <b>${hardestB.ring}x${hardestB.cog}</b>`;
+  }
+
+  // Bannière de diagnostic pour la sortie envisagée
+  const rideName = el('rideName').value.trim();
+  const ridePrefix = rideName ? `Pour « ${rideName} » : ` : '';
+  const banner = el('diagnosticBanner');
+  if(slopeMaxEasyAtCadence >= maxSlope){
+    banner.className = 'diagnostic-banner good';
+    banner.innerHTML = `✅ ${ridePrefix}le braquet le plus facile (${easiest.ring}x${easiest.cog}) couvre la pente prévue de ${maxSlope}% à ${cadenceRef} rpm (pente max tenable : ${slopeMaxEasyAtCadence.toFixed(1)}%).`;
+  } else {
+    banner.className = 'diagnostic-banner bad';
+    banner.innerHTML = `⚠️ ${ridePrefix}le braquet le plus facile (${easiest.ring}x${easiest.cog}) ne tiendra pas la pente prévue de ${maxSlope}% à ${cadenceRef} rpm (limite estimée : ${slopeMaxEasyAtCadence.toFixed(1)}%). Pense à une cassette plus large, à accepter une cadence plus basse sur ce passage, ou à un effort moins long/intense.`;
+  }
+
+  // Zone d'usage réelle = intersection entre le couloir des deux courbes et la plage 40-110 rpm
+  const zoneLow = [];
+  const zoneHigh = [];
+  for(let i=0;i<cadEasy.length;i++){
+    const lowCurve = Math.min(cadEasy[i], cadHard[i]);
+    const highCurve = Math.max(cadEasy[i], cadHard[i]);
+    let validLow = Math.max(lowCurve, 40);
+    let validHigh = Math.min(highCurve, 110);
+    if(validHigh < validLow) validHigh = validLow; // pas de zone valide à ce point
+    zoneLow.push(validLow);
+    zoneHigh.push(validHigh);
+  }
+
+  // Chart 2 : cadence requise
+  const ctx2 = el('cadenceChart').getContext('2d');
+  if(cadenceChart) cadenceChart.destroy();
+  cadenceChart = new Chart(ctx2, {
+    type:'line',
+    data:{
+      labels: slopes,
+      datasets:[
+        {label:'_zoneLow', data:zoneLow, borderColor:'transparent', backgroundColor:'transparent', pointRadius:0, fill:false, tension:0.25},
+        {label:'_zoneHigh', data:zoneHigh, borderColor:'transparent', backgroundColor:'rgba(61,90,64,0.28)', pointRadius:0, fill:'-1', tension:0.25},
+        {label:'Cadence braquet facile', data:cadEasy, borderColor:'#3d5a40', backgroundColor:'transparent', tension:0.25, borderWidth:2.5, pointRadius:0, fill:false},
+        {label:'Cadence braquet dur', data:cadHard, borderColor:'#7a9b7e', backgroundColor:'transparent', tension:0.25, borderWidth:2.5, pointRadius:0, fill:false},
+        ...(compareActive ? [
+          {label:`[B] facile (${easiestB.ring}x${easiestB.cog})`, data:cadEasyB, borderColor:'#3a5a8c', backgroundColor:'transparent', borderDash:[5,4], tension:0.25, borderWidth:2, pointRadius:0, fill:false},
+          {label:`[B] dur (${hardestB.ring}x${hardestB.cog})`, data:cadHardB, borderColor:'#8aa3c4', backgroundColor:'transparent', borderDash:[5,4], tension:0.25, borderWidth:2, pointRadius:0, fill:false},
+        ] : [])
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{display: compareActive, labels:{filter: (item) => !item.text.startsWith('_')}},
+        tooltip:{filter: (item) => !item.dataset.label.startsWith('_')},
+        annotation:{}
+      },
+      scales:{
+        x:{title:{display:true,text:'Pente (%)'}},
+        y:{title:{display:true,text:'Cadence (rpm)'}, min:0, max:140}
+      }
+    },
+    plugins:[{
+      id:'zoneShade',
+      beforeDraw(chart){
+        const {ctx, chartArea, scales} = chart;
+        if(!chartArea) return;
+        const yTop = scales.y.getPixelForValue(140);
+        const yLow = scales.y.getPixelForValue(40);
+        const yHigh = scales.y.getPixelForValue(110);
+        const yBottom = chartArea.bottom;
+        ctx.save();
+        // zone hors plage (au-dessus de 110 et au-dessous de 40) en orange très clair
+        ctx.fillStyle = 'rgba(168,84,46,0.06)';
+        ctx.fillRect(chartArea.left, yTop, chartArea.width, yHigh-yTop);
+        ctx.fillRect(chartArea.left, yLow, chartArea.width, yBottom-yLow);
+        // zone utilisable (40-110 rpm) en vert très clair — le chevauchement avec
+        // la zone entre les deux courbes (dataset fill) fait ressortir la vraie zone valide
+        ctx.fillStyle = 'rgba(61,90,64,0.05)';
+        ctx.fillRect(chartArea.left, yHigh, chartArea.width, yLow-yHigh);
+        ctx.restore();
+      }
+    }]
+  });
+
+  // Chart 3 : pente max tenable par braquet réel (plateau x pignon), à cadence cible
+  const combos = Calc.realisticGearCombos(g.small, g.big, g.cassetteTeeth);
+  const gearLabels = [];
+  const slopeMaxByGear = [];
+  for(const combo of combos){
+    const vKmhAtCad = speedFromCadence(combo.ratio, cadenceRef);
+    const vMs = vKmhAtCad/3.6;
+    const slopeMax = solveSlopeForSpeed(vMs, Psustain, totalMass, crr, cda);
+    gearLabels.push(`${combo.ring}x${combo.cog}`);
+    slopeMaxByGear.push(slopeMax);
+  }
+  // points de repère : braquet facile (index 0) et braquet dur (dernier index)
+  const markerData = new Array(combos.length).fill(null);
+  markerData[0] = slopeMaxByGear[0];
+  markerData[combos.length-1] = slopeMaxByGear[combos.length-1];
+
+  const ctx3 = el('slopeByGearChart').getContext('2d');
+  if(slopeByGearChart) slopeByGearChart.destroy();
+  slopeByGearChart = new Chart(ctx3, {
+    type:'line',
+    data:{
+      labels: gearLabels,
+      datasets:[
+        {label:'Pente max tenable (%)', data:slopeMaxByGear, borderColor:'#3d5a40', backgroundColor:'transparent', tension:0.25, borderWidth:2.5, pointRadius:0},
+        {label:'Braquets extrêmes', data:markerData, borderColor:'transparent', backgroundColor:'#a8542e', pointRadius:6, pointStyle:'circle', showLine:false}
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{title:{display:true,text:'Braquet (plateau x pignon) — du plus facile (gauche) au plus dur (droite)'}, ticks:{maxRotation:60, minRotation:60}},
+        y:{title:{display:true,text:'Pente max tenable (%)'}}
+      }
+    }
+  });
+
+  // Table
+  const tbody = el('dataTable').querySelector('tbody');
+  tbody.innerHTML = '';
+  const tableSteps = 6;
+  for(let i=0;i<=tableSteps;i++){
+    const slope = maxSlope * i/tableSteps;
+    const vMs = solveSpeedForPower(Psustain, slope, totalMass, crr, cda);
+    const vKmh = vMs*3.6;
+    const cE = cadenceFromSpeed(ratioEasy, vKmh);
+    const cH = cadenceFromSpeed(ratioHard, vKmh);
+    const easyOk = cE>=40 && cE<=110;
+    const hardOk = cH>=40 && cH<=110;
+    let diag = '';
+    if(!easyOk && cE>110) diag = 'Braquet facile trop court (sur-cadence)';
+    else if(!easyOk && cE<40) diag = 'Braquet facile trop long pour cette pente';
+    else diag = 'Braquet facile adapté';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${slope.toFixed(1)}%</td>
+      <td>${vKmh.toFixed(1)} km/h</td>
+      <td class="${easyOk?'ok':'flag'}">${cE.toFixed(0)} rpm</td>
+      <td class="${hardOk?'ok':'flag'}">${cH.toFixed(0)} rpm</td>
+      <td>${diag}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+ids.forEach(id => el(id).addEventListener('input', update));
+el('groupset').addEventListener('change', update);
+el('groupsetB').addEventListener('change', update);
+el('compareToggle').addEventListener('change', update);
+el('terrain').addEventListener('change', update);
+el('posture').addEventListener('change', update);
+el('kit').addEventListener('change', update);
+el('rideName').addEventListener('input', update);
+['cSmallRing','cBigRing','cCassetteTeeth'].forEach(id=>{
+  el(id).addEventListener('input', update);
+});
+
+document.querySelectorAll('.preset-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    el('pct').value = btn.dataset.pct;
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    update();
+  });
+});
+
+update();
+document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', +b.dataset.pct === +el('pct').value));
+
+// --- Analyse GPX -----------------------------------------------------------
+
+function estimateClimbEffort(climb, ctx){
+  const buckets = [
+    {name:'Sprint (<5min)', pct:1.05, maxMin:5},
+    {name:'Seuil (5-20min)', pct:0.95, maxMin:20},
+    {name:'Long (>20min)', pct:0.85, maxMin:Infinity},
+  ];
+  let chosen = buckets[2];
+  let v, durationMin;
+  for(let pass=0; pass<2; pass++){
+    const Psustain = ctx.ftp * chosen.pct;
+    v = Calc.solveSpeedForPower(Psustain, climb.avgSlope, ctx.totalMass, ctx.crr, ctx.cda);
+    durationMin = (climb.length / Math.max(v,0.3)) / 60;
+    const newChosen = buckets.find(b => durationMin <= b.maxMin) || buckets[2];
+    if(newChosen.name === chosen.name) break;
+    chosen = newChosen;
+  }
+  const Psustain = ctx.ftp * chosen.pct;
+  const slopeMaxAtCadence = Calc.solveSlopeForSpeed(
+    Calc.speedFromCadence(ctx.ratioEasy, ctx.cadenceRef)/3.6, Psustain, ctx.totalMass, ctx.crr, ctx.cda
+  );
+  return {
+    ...climb,
+    durationMin,
+    effortLabel: chosen.name,
+    pctUsed: chosen.pct,
+    slopeMaxAtCadence,
+    okAvg: slopeMaxAtCadence >= climb.avgSlope,
+    okMax: slopeMaxAtCadence >= climb.maxSlope,
+  };
+}
+
+function renderGpxAnalysis(profile, climbsRaw){
+  const ctx = buildContext();
+  const climbs = climbsRaw.map(c => estimateClimbEffort(c, ctx));
+
+  const totalDist = profile[profile.length-1].dist;
+  const totalGain = climbs.reduce((s,c)=>s+c.elevGain,0);
+  el('gpxSummary').innerHTML =
+    `Distance totale : <b>${(totalDist/1000).toFixed(1)} km</b> — ` +
+    `${climbs.length} montée(s) détectée(s) (seuil 3%, longueur mini 300m) — ` +
+    `D+ cumulé sur ces montées : <b>${totalGain.toFixed(0)} m</b><br>` +
+    `Profil utilisé : poids total ${ctx.totalMass.toFixed(1)} kg, FTP ${ctx.ftp} W, braquet facile ${ctx.easiest.ring}x${ctx.easiest.cog}, cadence cible ${ctx.cadenceRef} rpm.`;
+
+  // table
+  const tbody = el('climbsTable').querySelector('tbody');
+  tbody.innerHTML = '';
+  let worstIdx = -1, worstMargin = Infinity;
+  climbs.forEach((c,i) => {
+    const margin = c.slopeMaxAtCadence - c.avgSlope;
+    if(margin < worstMargin){ worstMargin = margin; worstIdx = i; }
+  });
+  climbs.forEach((c,i) => {
+    const tr = document.createElement('tr');
+    if(i === worstIdx && !c.okAvg) tr.className = 'climb-critical';
+    const diag = c.okAvg
+      ? (c.okMax ? '✅ ok' : '✅ en moyenne, ⚠️ passages plus durs')
+      : '⚠️ ne passe pas en moyenne';
+    tr.innerHTML = `
+      <td>${(c.startDist/1000).toFixed(1)} km</td>
+      <td>${(c.length/1000).toFixed(2)} km</td>
+      <td>${c.elevGain.toFixed(0)} m</td>
+      <td>${c.avgSlope.toFixed(1)}%</td>
+      <td>${c.maxSlope.toFixed(1)}%</td>
+      <td>${c.durationMin.toFixed(1)} min</td>
+      <td>${c.effortLabel}</td>
+      <td>${diag}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // profil altimetrique (echantillonne pour la lisibilite/performance)
+  const targetPoints = 400;
+  const stepIdx = Math.max(1, Math.floor(profile.length/targetPoints));
+  const sampled = [];
+  for(let i=0;i<profile.length;i+=stepIdx) sampled.push(profile[i]);
+
+  const ctxCanvas = el('elevationChart').getContext('2d');
+  if(elevationChart) elevationChart.destroy();
+  elevationChart = new Chart(ctxCanvas, {
+    type:'line',
+    data:{
+      datasets:[{
+        label:'Altitude',
+        data: sampled.map(p => ({x: p.dist/1000, y: p.eleSmooth})),
+        borderColor:'#3d5a40', backgroundColor:'rgba(61,90,64,0.08)', fill:true,
+        borderWidth:1.5, pointRadius:0, tension:0.1,
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{type:'linear', title:{display:true,text:'Distance (km)'}},
+        y:{title:{display:true,text:'Altitude (m)'}}
+      }
+    },
+    plugins:[{
+      id:'climbShade',
+      beforeDraw(chart){
+        const {ctx:c, chartArea, scales} = chart;
+        if(!chartArea) return;
+        c.save();
+        climbs.forEach(climb => {
+          const x1 = scales.x.getPixelForValue(climb.startDist/1000);
+          const x2 = scales.x.getPixelForValue(climb.endDist/1000);
+          c.fillStyle = climb.okAvg ? 'rgba(61,90,64,0.12)' : 'rgba(168,84,46,0.16)';
+          c.fillRect(x1, chartArea.top, x2-x1, chartArea.bottom-chartArea.top);
+        });
+        c.restore();
+      }
+    }]
+  });
+
+  el('gpxResults').style.display = 'block';
+  el('gpxEmpty').style.display = 'none';
+}
+
+el('gpxFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const text = evt.target.result;
+      const points = window.GpxAnalyzer.parseGpxString(text);
+      if(points.length < 2){
+        alert('Fichier GPX illisible ou vide.');
+        return;
+      }
+      const profile = window.GpxAnalyzer.buildProfile(points);
+      const smoothed = window.GpxAnalyzer.smoothProfile(profile, 80);
+      const slopes = window.GpxAnalyzer.computeSlopes(smoothed, 40);
+      const climbs = window.GpxAnalyzer.detectClimbs(smoothed, slopes, {threshold:3, minLength:300, mergeGap:200});
+      renderGpxAnalysis(smoothed, climbs);
+    } catch(err){
+      console.error(err);
+      alert('Erreur lors de l\'analyse du fichier GPX.');
+    }
+  };
+  reader.readAsText(file);
+});
+
+// --- Garage virtuel --------------------------------------------------------
+
+let garage = JSON.parse(localStorage.getItem('braquets-garage') || '[]');
+let activeBikeIdx = parseInt(localStorage.getItem('braquets-active-bike') ?? '-1');
+
+function saveGarage(){
+  localStorage.setItem('braquets-garage', JSON.stringify(garage));
+  localStorage.setItem('braquets-active-bike', activeBikeIdx);
+}
+
+function applyActiveBike(){
+  if(activeBikeIdx < 0 || activeBikeIdx >= garage.length) return;
+  const bike = garage[activeBikeIdx];
+  // choisir la cassette active du vélo
+  const activeCassetteId = bike.cassettes[bike.activeCassetteIdx ?? 0];
+  // trouver le groupset correspondant
+  const gsEntry = Object.entries(GROUPSETS).find(([id]) => id === activeCassetteId);
+  if(gsEntry){
+    el('groupset').value = gsEntry[0];
+    el('customGears').style.display = 'none';
+  }
+  if(bike.bikeWeight) el('bikeWeight').value = bike.bikeWeight;
+  update();
+}
+
+function renderGarage(){
+  const grid = el('garageGrid');
+  if(garage.length === 0){
+    grid.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px;">Aucun vélo dans le garage. Ajoutez-en un avec le bouton ci-dessus.</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  garage.forEach((bike, idx) => {
+    const isActive = idx === activeBikeIdx;
+    const card = document.createElement('div');
+    card.className = 'bike-card' + (isActive ? ' active-bike' : '');
+
+    const cassettesHtml = bike.cassettes.map((cid, ci) => {
+      const gs = GROUPSETS[cid];
+      const cas = gs ? CASSETTES[gs.cassetteId] : null;
+      const checked = ci === (bike.activeCassetteIdx ?? 0) ? 'checked' : '';
+      return `<label>
+        <input type="radio" name="cass-${idx}" value="${ci}" ${checked}>
+        ${cas ? `${gs.label.split('—')[1]?.trim() ?? cid}` : cid}
+      </label>`;
+    }).join('');
+
+    card.innerHTML = `
+      <h3>${isActive ? '★ ' : ''}${bike.name}</h3>
+      <div class="bike-meta">
+        ${bike.brand} ${bike.model} ${bike.year} · ${bike.finish}<br>
+        Poids vélo : ${bike.bikeWeight} kg<br>
+        Groupe : ${(GROUPSETS[bike.cassettes[0]]?.label ?? '').split('—')[0].trim()}
+      </div>
+      <div class="cassette-list">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px;">Cassettes</div>
+        ${cassettesHtml}
+      </div>
+      <div class="bike-actions">
+        <button class="btn-sm primary" onclick="setActiveBike(${idx})">Utiliser</button>
+        <button class="btn-sm" onclick="addCassette(${idx})">+ Cassette</button>
+        <button class="btn-sm danger" onclick="removeBike(${idx})">Supprimer</button>
+      </div>`;
+
+    // Radio cassette
+    card.querySelectorAll(`input[name="cass-${idx}"]`).forEach(radio => {
+      radio.addEventListener('change', () => {
+        garage[idx].activeCassetteIdx = parseInt(radio.value);
+        saveGarage();
+        if(idx === activeBikeIdx) applyActiveBike();
+        renderGarage();
+      });
+    });
+
+    grid.appendChild(card);
+  });
+}
+
+function setActiveBike(idx){
+  activeBikeIdx = idx;
+  saveGarage();
+  applyActiveBike();
+  renderGarage();
+  // basculer sur l'onglet config pour voir le résultat
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('[data-tab="config"]').classList.add('active');
+  el('tab-config').classList.add('active');
+}
+
+function removeBike(idx){
+  garage.splice(idx, 1);
+  if(activeBikeIdx === idx) activeBikeIdx = -1;
+  else if(activeBikeIdx > idx) activeBikeIdx--;
+  saveGarage();
+  renderGarage();
+}
+
+function addCassette(bikeIdx){
+  // Trouver les cassettes compatibles (même marque/famille de groupe que le vélo)
+  const bike = garage[bikeIdx];
+  const currentGs = GROUPSETS[bike.cassettes[0]];
+  if(!currentGs){ alert('Groupe de base non reconnu, ajout manuel non disponible.'); return; }
+  const opts = Object.entries(GROUPSETS)
+    .filter(([id,g]) => id !== 'custom' && g.small === currentGs.small && g.big === currentGs.big && !bike.cassettes.includes(id))
+    .map(([id,g]) => `<option value="${id}">${g.label.split('—')[1]?.trim() ?? id}</option>`)
+    .join('');
+  if(!opts){ alert('Toutes les cassettes compatibles sont déjà dans le rack.'); return; }
+  const sel = document.createElement('select');
+  sel.innerHTML = opts;
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:999;';
+  wrap.innerHTML = `<div style="background:#fff;padding:24px;max-width:400px;width:90%;"><p style="font-family:monospace;font-size:13px;text-transform:uppercase;margin:0 0 12px;">Choisir une cassette à ajouter</p></div>`;
+  wrap.querySelector('div').appendChild(sel);
+  const btnOk = document.createElement('button');
+  btnOk.className = 'btn-sm primary'; btnOk.style.marginTop='12px'; btnOk.textContent = 'Ajouter';
+  btnOk.onclick = () => {
+    garage[bikeIdx].cassettes.push(sel.value);
+    saveGarage(); renderGarage(); document.body.removeChild(wrap);
+  };
+  const btnCx = document.createElement('button');
+  btnCx.className = 'btn-sm'; btnCx.style.marginLeft='8px'; btnCx.textContent = 'Annuler';
+  btnCx.onclick = () => document.body.removeChild(wrap);
+  wrap.querySelector('div').appendChild(btnOk);
+  wrap.querySelector('div').appendChild(btnCx);
+  document.body.appendChild(wrap);
+}
+
+// Formulaire d'ajout de vélo
+function populateBrandSelect(){
+  const sel = el('newBrand');
+  sel.innerHTML = '<option value="">— Choisir une marque —</option>' +
+    Object.keys(BIKES).map(b=>`<option value="${b}">${b}</option>`).join('');
+}
+
+function onBrandChange(){
+  const brand = el('newBrand').value;
+  const sel = el('newModel');
+  sel.innerHTML = '<option value="">— Modèle —</option>';
+  if(!brand){ el('newYear').innerHTML=''; el('newFinish').innerHTML=''; return; }
+  Object.keys(BIKES[brand]).forEach(m=>{
+    sel.innerHTML += `<option value="${m}">${m} (${BIKES[brand][m].usage})</option>`;
+  });
+  el('newYear').innerHTML=''; el('newFinish').innerHTML='';
+  updateNewBikePreview();
+}
+
+function onModelChange(){
+  const brand = el('newBrand').value, model = el('newModel').value;
+  const sel = el('newYear');
+  sel.innerHTML = '<option value="">— Millésime —</option>';
+  if(!brand||!model){ el('newFinish').innerHTML=''; return; }
+  Object.keys(BIKES[brand][model].years).sort((a,b)=>b-a).forEach(y=>{
+    sel.innerHTML += `<option value="${y}">${y}</option>`;
+  });
+  el('newFinish').innerHTML='';
+  updateNewBikePreview();
+}
+
+function onYearChange(){
+  const brand = el('newBrand').value, model = el('newModel').value, year = el('newYear').value;
+  const sel = el('newFinish');
+  sel.innerHTML = '<option value="">— Finition —</option>';
+  if(!brand||!model||!year) return;
+  Object.keys(BIKES[brand][model].years[year]).forEach(f=>{
+    sel.innerHTML += `<option value="${f}">${f}</option>`;
+  });
+  updateNewBikePreview();
+}
+
+function updateNewBikePreview(){
+  const brand=el('newBrand').value, model=el('newModel').value, year=el('newYear').value, finish=el('newFinish').value;
+  const preview = el('newBikePreview');
+  if(!brand||!model||!year||!finish){ preview.innerHTML=''; return; }
+  const spec = BIKES[brand][model].years[year][finish];
+  const gs = GROUPSETS[spec.groupsetId];
+  const cas = gs ? CASSETTES[gs.cassetteId] : null;
+  preview.innerHTML = `Groupe : <b>${gs?.label ?? spec.groupsetId}</b><br>` +
+    `Cassette : <b>${cas ? cas.teeth.join('-') : '—'}</b><br>` +
+    `Poids vélo (constructeur) : <b>${spec.weight} kg</b>`;
+}
+
+el('newBrand').addEventListener('change', onBrandChange);
+el('newModel').addEventListener('change', onModelChange);
+el('newYear').addEventListener('change', onYearChange);
+el('newFinish').addEventListener('change', updateNewBikePreview);
+
+el('btnAddBike').addEventListener('click', ()=>{
+  el('addBikeForm').classList.toggle('open');
+  if(el('addBikeForm').classList.contains('open')) populateBrandSelect();
+});
+el('btnCancelBike').addEventListener('click', ()=>el('addBikeForm').classList.remove('open'));
+
+el('btnConfirmBike').addEventListener('click', ()=>{
+  const brand=el('newBrand').value, model=el('newModel').value,
+        year=el('newYear').value, finish=el('newFinish').value;
+  if(!brand||!model||!year||!finish){ alert('Merci de remplir tous les champs.'); return; }
+  const spec = BIKES[brand][model].years[year][finish];
+  const customName = el('newBikeName').value.trim();
+  const bike = {
+    name: customName || `${brand} ${model} ${year} ${finish}`,
+    brand, model, year, finish,
+    bikeWeight: spec.weight,
+    cassettes: [spec.groupsetId],
+    activeCassetteIdx: 0,
+  };
+  garage.push(bike);
+  saveGarage();
+  renderGarage();
+  el('addBikeForm').classList.remove('open');
+  el('newBikeName').value='';
+  el('newBrand').value=''; el('newModel').innerHTML=''; el('newYear').innerHTML=''; el('newFinish').innerHTML=''; el('newBikePreview').innerHTML='';
+});
+
+renderGarage();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
