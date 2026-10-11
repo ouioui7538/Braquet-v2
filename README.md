@@ -5,6 +5,7 @@ Application web progressive (PWA) de calcul de braquets cyclistes.
 ## Fonctionnalités
 
 - **Configuration** : poids cycliste/vélo, FTP, position aérodynamique, groupe parmi 60+ références (Shimano, SRAM, Campagnolo, Microshift)
+- **Pneus** : gabarit de pneu (largeur, type) qui ajuste la circonférence de roulement et le Crr, le revêtement servant d'ajustement ; le pneu se règle aussi par vélo dans le garage
 - **Analyse** : vitesse soutenable en fonction de la pente, cadence requise par braquet, pente maximale tenable par braquet à cadence cible, comparaison de deux groupes
 - **Parcours GPX** : import d'un fichier GPX, détection automatique des montées, diagnostic par montée (pente moyenne/max, durée estimée, type d'effort, ✅/⚠️)
 - **Mon garage** : rack de vélos issu d'une base de 120+ configurations (Trek, Specialized, Giant, Cannondale, Scott, Bianchi, Orbea — millésimes 2021-2025), ajout de vélos personnalisés, gestion de plusieurs cassettes par vélo
@@ -15,6 +16,7 @@ Application web progressive (PWA) de calcul de braquets cyclistes.
 pwa/
 ├── index.html      — UI (onglets Config / Analyse / GPX / Garage)
 ├── calc.js         — Moteur de calcul pur (braquets, puissance, aéro)
+├── tires.js        — Base de pneus (circonférence, Crr par revêtement)
 ├── cassettes.js    — Base de groupes et cassettes du commerce
 ├── bikes.js        — Base de vélos par marque/modèle/millésime
 ├── gpx.js          — Parsing GPX + détection de montées

@@ -13,6 +13,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="cassettes.js"></script>
 <script src="calc.js"></script>
+<script src="tires.js"></script>
 <style>
 /* ── Tokens ─────────────────────────────────────────── */
 :root{
@@ -459,12 +460,16 @@ details.advanced .adv-body{padding-top:8px;border-top:1px solid var(--line);marg
         <input type="range" id="maxSlope" min="2" max="25" value="12" step="1">
         <p class="hint">Renseignez la pente max du parcours que vous préparez. Cela dimensionne les graphiques et le diagnostic.</p>
 
-        <label class="field-label" style="margin-top:12px;">Type de revêtement</label>
+        <label class="field-label" style="margin-top:12px;">Pneus</label>
+        <select id="tire"></select>
+
+        <label class="field-label" style="margin-top:12px;">Revêtement (ajuste la résistance au roulement)</label>
         <select id="terrain">
-          <option value="0.0045">🛣 Route lisse</option>
-          <option value="0.006" selected>🚗 Route moyenne</option>
-          <option value="0.012">🪨 Gravel / chemin</option>
+          <option value="smooth">🛣 Route lisse</option>
+          <option value="rough" selected>🚗 Route moyenne</option>
+          <option value="gravel">🪨 Gravel / chemin</option>
         </select>
+        <div class="readout" id="tireReadout" style="margin-top:8px;"></div>
 
         <label class="field-label" style="margin-top:12px;">Nom de la sortie (optionnel)</label>
         <input type="text" id="rideName" placeholder="ex: Cyclo des Trois Cols">
@@ -764,6 +769,10 @@ details.advanced .adv-body{padding-top:8px;border-top:1px solid var(--line);marg
       <label class="field-label">Nom personnalisé (optionnel)</label>
       <input type="text" id="newBikeName" placeholder="ex: Mon gravel bleu">
     </div>
+    <div style="margin-top:12px;">
+      <label class="field-label">Pneus</label>
+      <select id="newTire" style="width:100%;"></select>
+    </div>
     <div class="readout" id="newBikePreview" style="margin:10px 0;"></div>
     <div class="form-actions">
       <button class="btn btn-primary" id="btnConfirmBike">✓ Ajouter</button>
@@ -851,8 +860,29 @@ function gearsForId(id){
 
 function gearRatioEasy(g){ return Calc.easiestGear(g.small, g.cassetteTeeth).ratio; }
 function gearRatioHard(g){ return Calc.hardestGear(g.big, g.cassetteTeeth).ratio; }
-const speedFromCadence = (ratio, cadenceRpm) => Calc.speedFromCadence(ratio, cadenceRpm);
-const cadenceFromSpeed = (ratio, speedKmh) => Calc.cadenceFromSpeed(ratio, speedKmh);
+function buildTireOptions(sel, selectedId){
+  sel.innerHTML = '';
+  const groups = {};
+  Object.entries(TIRES).forEach(([id, t]) => { (groups[t.group] ||= []).push([id, t]); });
+  Object.entries(groups).forEach(([name, entries]) => {
+    const og = document.createElement('optgroup');
+    og.label = name;
+    entries.forEach(([id, t]) => {
+      const o = document.createElement('option');
+      o.value = id; o.textContent = t.label;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  sel.value = selectedId || TireDB.DEFAULT_TIRE_ID;
+}
+buildTireOptions(el('tire'));
+
+// Circonférence de roulement courante : mise à jour par buildContext() depuis
+// le pneu sélectionné, avant tout calcul de vitesse/cadence.
+let wheelCirc = Calc.WHEEL_CIRC_M;
+const speedFromCadence = (ratio, cadenceRpm) => Calc.speedFromCadence(ratio, cadenceRpm, wheelCirc);
+const cadenceFromSpeed = (ratio, speedKmh) => Calc.cadenceFromSpeed(ratio, speedKmh, wheelCirc);
 const powerForSpeed = (vMs, slopePct, totalMassKg, crr, cda) => Calc.powerForSpeed(vMs, slopePct, totalMassKg, crr, cda);
 const solveSpeedForPower = (Psustain, slopePct, totalMassKg, crr, cda) => Calc.solveSpeedForPower(Psustain, slopePct, totalMassKg, crr, cda);
 const solveSlopeForSpeed = (vMs, Psustain, totalMassKg, crr, cda) => Calc.solveSlopeForSpeed(vMs, Psustain, totalMassKg, crr, cda);
@@ -861,7 +891,11 @@ function buildContext(){
   const weight = +el('weight').value;
   const bikeWeight = +el('bikeWeight').value;
   const ftp = +el('ftp').value;
-  const crr = +el('terrain').value;
+  const tireId = el('tire').value;
+  const surface = el('terrain').value;
+  const tire = TireDB.getTire(tireId);
+  const crr = TireDB.crrFor(tireId, surface);
+  wheelCirc = tire.circ;
   const posture = el('posture').value;
   const kit = el('kit').value;
   const cda = Calc.computeCdA(posture, kit);
@@ -872,7 +906,7 @@ function buildContext(){
   const totalMass = weight + bikeWeight;
   const easiest = Calc.easiestGear(g.small, g.cassetteTeeth);
   const hardest = Calc.hardestGear(g.big, g.cassetteTeeth);
-  return { weight, bikeWeight, ftp, crr, cda, cadenceRef, g, ratioEasy, ratioHard, totalMass, easiest, hardest };
+  return { weight, bikeWeight, ftp, crr, wheelCirc: tire.circ, tire, cda, cadenceRef, g, ratioEasy, ratioHard, totalMass, easiest, hardest };
 }
 
 let speedChart, cadenceChart, slopeByGearChart, elevationChart;
@@ -898,14 +932,17 @@ function update(){
   el('compareBlock').style.display = compareActive ? 'block' : 'none';
 
   el('gearReadout').innerHTML =
-    `Braquet le plus facile : <b>${easiest.ring}x${easiest.cog}</b> (dév. ${(ratioEasy*Calc.WHEEL_CIRC_M).toFixed(2)} m)<br>` +
-    `Braquet le plus dur : <b>${hardest.ring}x${hardest.cog}</b> (dév. ${(ratioHard*Calc.WHEEL_CIRC_M).toFixed(2)} m)`;
+    `Braquet le plus facile : <b>${easiest.ring}x${easiest.cog}</b> (dév. ${(ratioEasy*ctx.wheelCirc).toFixed(2)} m)<br>` +
+    `Braquet le plus dur : <b>${hardest.ring}x${hardest.cog}</b> (dév. ${(ratioHard*ctx.wheelCirc).toFixed(2)} m)`;
+  el('tireReadout').innerHTML =
+    `Circonférence : <b>${ctx.wheelCirc.toFixed(3)} m</b> · Crr effectif : <b>${crr.toFixed(4)}</b>`;
 
   el('configSummary').innerHTML =
     `Poids total (corps + vélo) : <b>${totalMass.toFixed(1)} kg</b><br>` +
     `Puissance soutenable retenue : <b>${Psustain.toFixed(0)} W</b> (${pct}% de ${ftp} W)<br>` +
     `Pente max envisagée : <b>${maxSlope}%</b><br>` +
     `Groupe : <b>${g.small}/${g.big}</b> — cassette <b>${g.cassetteTeeth[0]}-${g.cassetteTeeth[g.cassetteTeeth.length-1]}</b><br>` +
+    `Pneus : <b>${ctx.tire.label}</b> (Crr ${crr.toFixed(4)}, circ. ${ctx.wheelCirc.toFixed(3)} m)<br>` +
     `CdA (position + tenue) : <b>${cda.toFixed(3)} m²</b>`;
 
   const slopes = [];
@@ -1100,6 +1137,7 @@ el('groupset').addEventListener('change', update);
 el('groupsetB').addEventListener('change', update);
 el('compareToggle').addEventListener('change', update);
 el('terrain').addEventListener('change', update);
+el('tire').addEventListener('change', update);
 el('posture').addEventListener('change', update);
 el('kit').addEventListener('change', update);
 el('rideName').addEventListener('input', update);
@@ -1120,7 +1158,7 @@ document.querySelectorAll('.preset-btn').forEach(btn=>{
 // Liste des champs à sauvegarder : [id, type]
 const PERSIST_FIELDS = [
   ['weight','range'], ['bikeWeight','range'], ['ftp','range'], ['pct','range'],
-  ['maxSlope','range'], ['cadence','range'], ['terrain','select'],
+  ['maxSlope','range'], ['cadence','range'], ['terrain','select'], ['tire','select'],
   ['posture','select'], ['kit','select'], ['rideName','text'],
   ['groupset','select'], ['cSmallRing','number'], ['cBigRing','number'],
   ['cCassetteTeeth','text'],
@@ -1138,6 +1176,10 @@ function savePrefs(){
 function loadPrefs(){
   try {
     const prefs = JSON.parse(localStorage.getItem('braquets-prefs') || '{}');
+    // Migration : l'ancien sélecteur terrain stockait un Crr brut ("0.006")
+    if(prefs.terrain in TireDB.LEGACY_TERRAIN) prefs.terrain = TireDB.LEGACY_TERRAIN[prefs.terrain];
+    if(prefs.terrain !== undefined && !TireDB.SURFACES[prefs.terrain]) delete prefs.terrain;
+    if(prefs.tire !== undefined && !TIRES[prefs.tire]) delete prefs.tire;
     PERSIST_FIELDS.forEach(([id]) => {
       const e = document.getElementById(id);
       if(e && prefs[id] !== undefined) e.value = prefs[id];
@@ -1176,7 +1218,7 @@ function estimateClimbEffort(climb, ctx){
   }
   const Psustain = ctx.ftp * chosen.pct;
   const slopeMaxAtCadence = Calc.solveSlopeForSpeed(
-    Calc.speedFromCadence(ctx.ratioEasy, ctx.cadenceRef)/3.6, Psustain, ctx.totalMass, ctx.crr, ctx.cda
+    Calc.speedFromCadence(ctx.ratioEasy, ctx.cadenceRef, ctx.wheelCirc)/3.6, Psustain, ctx.totalMass, ctx.crr, ctx.cda
   );
   return {
     ...climb,
@@ -1354,6 +1396,7 @@ function applyActiveBike(){
     }
   }
   if(bike.bikeWeight) el('bikeWeight').value = bike.bikeWeight;
+  if(bike.tireId && TIRES[bike.tireId]) el('tire').value = bike.tireId;
   updateActiveBikeBanner();
   update();
 }
@@ -1385,6 +1428,7 @@ function renderGarage(){
       <div class="bike-meta">
         ${bike.brand} ${bike.model} ${bike.year} · ${bike.finish}<br>
         Poids vélo : ${bike.bikeWeight} kg<br>
+        Pneus : <select class="tire-select" data-idx="${idx}" style="width:auto;max-width:100%;padding:2px 4px;font-size:12px;"></select><br>
         Groupe : ${(GROUPSETS[bike.cassettes[0]]?.label ?? '').split('—')[0].trim()}
       </div>
       <div class="cassette-list">
@@ -1396,6 +1440,15 @@ function renderGarage(){
         <button class="btn-sm" onclick="addCassette(${idx})">+ Cassette</button>
         <button class="btn-sm danger" onclick="removeBike(${idx})">Supprimer</button>
       </div>`;
+
+    // Pneus du vélo
+    const tireSel = card.querySelector('.tire-select');
+    buildTireOptions(tireSel, bike.tireId);
+    tireSel.addEventListener('change', () => {
+      garage[idx].tireId = tireSel.value;
+      saveGarage();
+      if(idx === activeBikeIdx) applyActiveBike();
+    });
 
     // Radio cassette
     card.querySelectorAll(`input[name="cass-${idx}"]`).forEach(radio => {
@@ -1465,6 +1518,7 @@ function addCassette(bikeIdx){
 let addBikeMode = 'known'; // 'known' | 'custom'
 
 function populateBrandSelect(){
+  buildTireOptions(el('newTire'));
   const sel = el('newBrand');
   sel.innerHTML = '<option value="">— Choisir une marque —</option>' +
     Object.keys(BIKES).map(b=>`<option value="${b}">${b}</option>`).join('');
@@ -1558,6 +1612,8 @@ function updateNewBikePreview(){
   preview.innerHTML = `Groupe : <b>${gs?.label ?? spec.groupsetId}</b><br>` +
     `Cassette : <b>${cas ? cas.teeth.join(' – ') : '—'}</b><br>` +
     `Poids vélo (constructeur) : <b>${spec.weight} kg</b>`;
+  // Pneus conseillés selon l'usage du modèle (modifiable)
+  el('newTire').value = TireDB.defaultTireForUsage(BIKES[brand][model].usage);
 }
 
 el('modeKnown').addEventListener('click', () => setAddBikeMode('known'));
@@ -1598,6 +1654,7 @@ el('btnConfirmBike').addEventListener('click', ()=>{
       bikeWeight: spec.weight,
       cassettes: [spec.groupsetId],
       activeCassetteIdx: 0,
+      tireId: el('newTire').value,
     };
   } else {
     const brand = el('customBrand').value.trim() || 'Autre';
@@ -1612,6 +1669,7 @@ el('btnConfirmBike').addEventListener('click', ()=>{
       bikeWeight: weight,
       cassettes: [gsId],
       activeCassetteIdx: 0,
+      tireId: el('newTire').value,
       isCustom: true,
     };
   }

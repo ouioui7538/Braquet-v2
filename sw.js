@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   './icon-512.png',
   './cassettes.js',
   './calc.js',
+  './tires.js',
   './gpx.js',
   './bikes.js',
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'
